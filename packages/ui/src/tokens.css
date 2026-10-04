@@ -1,0 +1,35 @@
+/*
+ * Дизайн-токены СТО. Tailwind CSS v4, тема через @theme.
+ * Бренд: графитовый синий (гараж, техника) + сигнальный оранжевый (акция, CTA).
+ */
+@theme {
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  --color-brand-50: #f4f6f9;
+  --color-brand-100: #e6eaf1;
+  --color-brand-200: #c8d1e0;
+  --color-brand-300: #a2b2cb;
+  --color-brand-400: #7589ac;
+  --color-brand-500: #546c93;
+  --color-brand-600: #41547a;
+  --color-brand-700: #354463;
+  --color-brand-800: #2d3a52;
+  --color-brand-900: #283245;
+  --color-brand-950: #171d29;
+
+  --color-accent-50: #fff8ed;
+  --color-accent-100: #ffecd4;
+  --color-accent-200: #ffd1a6;
+  --color-accent-300: #ffb26e;
+  --color-accent-400: #ff8f38;
+  --color-accent-500: #ff7314;
+  --color-accent-600: #f05806;
+  --color-accent-700: #c84207;
+  --color-accent-800: #a1340d;
+  --color-accent-900: #842e0e;
+  --color-accent-950: #481505;
+
+  --radius-card: 1rem;
+
+  --shadow-card: 0 1px 2px rgb(23 29 41 / 0.06), 0 4px 16px rgb(23 29 41 / 0.08);
+}

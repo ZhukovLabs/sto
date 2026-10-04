@@ -1,0 +1,10 @@
+node_modules/
+.next/
+dist/
+.turbo/
+coverage/
+apps/api/src/generated/
+pnpm-lock.yaml
+packages/types/openapi.json
+next-env.d.ts
+*.tsbuildinfo

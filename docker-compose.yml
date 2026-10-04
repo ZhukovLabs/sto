@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: sto-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sto
+      POSTGRES_PASSWORD: sto
+      POSTGRES_DB: sto
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - sto-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sto -d sto']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: sto-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://sto:sto@db:5432/sto
+      PORT: '3002'
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
+    ports:
+      - '${API_PORT:-3002}:3002'
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ['full']
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: sto-web
+    restart: unless-stopped
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    profiles: ['full']
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    container_name: sto-admin
+    restart: unless-stopped
+    ports:
+      - '${ADMIN_PORT:-3001}:3001'
+    profiles: ['full']
+
+volumes:
+  sto-pgdata:
