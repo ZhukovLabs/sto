@@ -13,6 +13,7 @@
     "dev:api": "pnpm --filter @sto/api start:dev",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
+    "test": "turbo test",
     "gen:types": "pnpm --filter @sto/api gen:openapi && pnpm --filter @sto/types gen",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
