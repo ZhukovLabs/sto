@@ -8,6 +8,7 @@ const config: StorybookConfig = {
   addons: ['@storybook/addon-themes'],
   async viteFinal(baseConfig) {
     return mergeConfig(baseConfig, {
+      base: process.env.PAGES_BASE || '/',
       plugins: [tailwindcss()],
       resolve: {
         dedupe: ['react', 'react-dom'],

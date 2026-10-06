@@ -1,7 +1,4 @@
-import type { HealthResponse } from '@sto/types';
 import { Badge, Button, Heading, Text } from '@sto/ui';
-
-const importCheck: HealthResponse = { status: 'ok', uptime: 0 };
 
 export default function AdminHomePage() {
   return (
@@ -11,7 +8,7 @@ export default function AdminHomePage() {
         МаксШнакс
       </Heading>
       <Text variant="lead" className="max-w-xl text-content-muted">
-        Проверка сборки: @sto/types → admin, {importCheck.status}
+        Тестовая страница — просто текст
       </Text>
       <Button variant="secondary">Обновить</Button>
     </main>
