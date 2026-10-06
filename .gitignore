@@ -16,3 +16,12 @@ pnpm-debug.log*
 apps/api/src/generated/
 packages/types/src/generated/
 .husky/_
+
+# agent workspace artifacts
+.pen/
+.screens/
+.serena/
+*storybook.log
+
+# storybook build output
+storybook-static/
