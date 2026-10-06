@@ -1,15 +1,18 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { loadEnv } from './env';
 import { setupSwagger } from './swagger';
 
 async function bootstrap(): Promise<void> {
+  const env = loadEnv();
   const app = await NestFactory.create(AppModule);
-  const origins = process.env.CORS_ORIGINS?.split(',').map((o) => o.trim());
-  app.enableCors({ origin: origins ?? true, credentials: true });
+  app.enableCors({
+    origin: env.CORS_ORIGINS.length > 0 ? env.CORS_ORIGINS : true,
+    credentials: true,
+  });
   setupSwagger(app);
-  const port = Number(process.env.PORT ?? 3002);
-  await app.listen(port);
+  await app.listen(env.PORT);
 }
 
 void bootstrap();

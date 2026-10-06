@@ -13,10 +13,12 @@
   "scripts": {
     "gen": "openapi-typescript ./openapi.json -o ./src/generated/schema.ts",
     "build": "pnpm run gen && tsc -p tsconfig.json",
-    "typecheck": "pnpm run gen && tsc --noEmit -p tsconfig.json"
+    "typecheck": "pnpm run gen && tsc --noEmit -p tsconfig.json",
+    "test": "pnpm run gen && vitest run --typecheck"
   },
   "devDependencies": {
     "openapi-typescript": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

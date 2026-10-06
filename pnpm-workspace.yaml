@@ -11,6 +11,7 @@ catalog:
   next: '^16.3.8'
   typescript: '^5.9.3'
   zod: '^4.6.5'
+  vitest: '^5.0.3'
   tailwindcss: '^4.3.3'
   '@tailwindcss/postcss': '^4.3.3'
   '@nestjs/common': '^12.1.2'

@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "gen:openapi": "nest build && node dist/src/gen-openapi.js",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test": "vitest run"
   },
   "dependencies": {
     "@nestjs/common": "catalog:",
@@ -22,7 +23,8 @@
     "@prisma/client": "catalog:",
     "@sto/types": "workspace:*",
     "reflect-metadata": "catalog:",
-    "rxjs": "catalog:"
+    "rxjs": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@nestjs/cli": "catalog:",
@@ -30,6 +32,7 @@
     "@types/node": "catalog:",
     "dotenv": "^18.0.5",
     "prisma": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
