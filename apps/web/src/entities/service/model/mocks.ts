@@ -1,6 +1,6 @@
 import type { Service } from './types';
 
-const services: Service[] = [
+export const SERVICES: Service[] = [
   {
     id: 'oil',
     slug: 'zamena-masla',
@@ -69,9 +69,6 @@ const services: Service[] = [
     title: 'Заправка и ремонт кондиционера',
     description: 'Диагностика утечки, а не просто «залить и забыть».',
     priceFrom: 100,
+    fixed: true,
   },
 ];
-
-export function getServices(): Service[] {
-  return services;
-}

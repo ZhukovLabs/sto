@@ -6,5 +6,6 @@ export interface Service {
   priceFrom: number;
   priceTo?: number;
   unit?: string;
+  fixed?: boolean;
   popular?: boolean;
 }

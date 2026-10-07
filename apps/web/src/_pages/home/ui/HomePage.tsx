@@ -1,5 +1,6 @@
 import { Header } from '@/widgets/header';
 import { Hero } from '@/widgets/hero';
+import { Services } from '@/widgets/services';
 
 export function HomePage() {
   return (
@@ -7,7 +8,7 @@ export function HomePage() {
       <Header />
       <main>
         <Hero />
-        <section id="services" />
+        <Services />
         <section id="trust" />
         <section id="how" />
         <section id="brands" />
