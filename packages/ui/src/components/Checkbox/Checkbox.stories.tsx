@@ -1,26 +1,31 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useState } from 'react';
 import { Checkbox } from './Checkbox';
 
-const meta = {
+const meta: Meta<typeof Checkbox> = {
   title: 'Forms/Checkbox',
   component: Checkbox,
-  tags: ['autodocs'],
-  argTypes: { error: { control: 'text' }, disabled: { control: 'boolean' } },
-} satisfies Meta<typeof Checkbox>;
+};
 
 export default meta;
 type Story = StoryObj<typeof Checkbox>;
 
-export const Default: Story = {
-  args: {
-    label: 'Согласен на обработку персональных данных',
-    defaultChecked: true,
-  },
-};
+function CheckboxPlayground() {
+  const [checked, setChecked] = useState(false);
+  return (
+    <div className="flex max-w-md flex-col gap-5">
+      <Checkbox
+        checked={checked}
+        onChange={setChecked}
+        label="Согласен на обработку персональных данных"
+      />
+      <Checkbox checked={false} onChange={() => {}} label="Не отмечен" />
+      <Checkbox checked onChange={() => {}} label="Отмечен" />
+      <Checkbox checked={false} onChange={() => {}} label="Ошибка" error="Нужно согласие" />
+    </div>
+  );
+}
 
-export const WithError: Story = {
-  args: {
-    label: 'Согласен на обработку персональных данных',
-    error: 'Без согласия мы не сможем принять заявку',
-  },
+export const Default: Story = {
+  render: () => <CheckboxPlayground />,
 };

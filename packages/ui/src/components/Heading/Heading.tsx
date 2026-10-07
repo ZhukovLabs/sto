@@ -1,6 +1,18 @@
 import type { ElementType, HTMLAttributes, ReactNode } from 'react';
 
-export type HeadingVariant = 'display-xl' | 'display-lg' | 'display-md' | 'h1' | 'h2' | 'h3' | 'h4';
+export type HeadingVariant =
+  | 'display-2xl'
+  | 'display-xl'
+  | 'display-lg'
+  | 'section'
+  | 'stat'
+  | 'display-md'
+  | 'display-sm'
+  | 'display-xs'
+  | 'h1'
+  | 'h2'
+  | 'h3'
+  | 'h4';
 
 export type TextColor = 'strong' | 'muted' | 'dim' | 'accent' | 'inherit';
 
@@ -15,9 +27,14 @@ export interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
 }
 
 const variantClass: Record<HeadingVariant, string> = {
+  'display-2xl': 'text-display-2xl font-extrabold',
   'display-xl': 'text-display-xl font-extrabold',
   'display-lg': 'text-display-lg font-extrabold',
+  section: 'text-section font-bold',
+  stat: 'text-stat font-bold',
   'display-md': 'text-display-md font-bold',
+  'display-sm': 'text-display-sm font-extrabold',
+  'display-xs': 'text-display-xs font-extrabold',
   h1: 'text-h1 font-bold',
   h2: 'text-h2 font-bold',
   h3: 'text-h3 font-semibold',
@@ -33,9 +50,14 @@ const colorClass: Record<TextColor, string> = {
 };
 
 const defaultTag: Record<HeadingVariant, ElementType> = {
+  'display-2xl': 'h1',
   'display-xl': 'h1',
   'display-lg': 'h1',
+  section: 'h2',
+  stat: 'p',
   'display-md': 'h1',
+  'display-sm': 'h2',
+  'display-xs': 'h2',
   h1: 'h1',
   h2: 'h2',
   h3: 'h3',

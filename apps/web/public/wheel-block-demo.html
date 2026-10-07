@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Демо: 3D-взрыв колеса — v2</title>
+<style>
+  :root { --bg:#101214; --panel:#17191D; --hairline:#2A2E34; --text:#F2F3F5; --muted:#9BA1A8; --dim:#6C737B; --accent:#FF6B2C; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:Inter,Arial,sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .demo-note { position:fixed; top:16px; left:50%; transform:translateX(-50%); font:11px/1 monospace; letter-spacing:.1em; color:var(--dim); text-transform:uppercase; }
+  .wrap { display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; width:min(1200px,100% - 64px); padding:64px 0; }
+  @media (max-width:900px){ .wrap { grid-template-columns:1fr; } }
+  .left h1 { font-size:clamp(34px,4vw,54px); line-height:1.04; letter-spacing:.01em; text-transform:uppercase; font-weight:800; }
+  .left h1 em { font-style:normal; color:var(--accent); }
+  .left .mono { margin-top:18px; font:12px/1.5 monospace; letter-spacing:.08em; color:var(--dim); text-transform:uppercase; }
+  .left p { margin-top:18px; color:var(--muted); font-size:16px; line-height:1.6; max-width:480px; }
+  .ctas { margin-top:28px; display:flex; gap:14px; }
+  .btn { display:inline-flex; align-items:center; height:48px; padding:0 26px; border-radius:999px; font-weight:600; font-size:14px; text-decoration:none; }
+  .btn.primary { background:var(--accent); color:#1A0E06; }
+  .btn.outline { border:1px solid var(--hairline); color:var(--text); }
+  .stage-panel { position:relative; aspect-ratio:552/539; border:1px solid var(--hairline); border-radius:16px; background:radial-gradient(130% 100% at 70% 15%, #21252b 0%, #14161A 55%, #101214 100%); overflow:hidden; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; }
+  canvas:active { cursor:grabbing; }
+  .tag { position:absolute; top:0; left:0; pointer-events:none; opacity:0; transition:opacity .45s ease .1s; will-change:transform; }
+  .tag.on { opacity:1; }
+  .tag b { display:block; font:10px/1 monospace; letter-spacing:.08em; color:#C7CBD1; text-transform:uppercase; margin-bottom:4px; }
+  .tag span { display:inline-block; font:800 13px/1 Inter,Arial,sans-serif; letter-spacing:.02em; color:var(--text); background:rgba(23,25,29,.92); border:1px solid var(--hairline); border-radius:8px; padding:8px 10px; white-space:nowrap; }
+  .tag.hot span { color:#1A0E06; background:var(--accent); border-color:var(--accent); }
+  .controls { margin-top:14px; display:flex; align-items:center; gap:14px; }
+  .controls label { font:11px/1 monospace; letter-spacing:.1em; color:var(--dim); text-transform:uppercase; white-space:nowrap; }
+  input[type=range] { flex:1; appearance:none; height:2px; background:var(--hairline); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb { appearance:none; width:16px; height:16px; border-radius:50%; background:var(--accent); cursor:pointer; border:3px solid var(--bg); box-shadow:0 0 0 1px var(--hairline); }
+  .hint { margin-top:10px; font:11px/1.5 monospace; letter-spacing:.06em; color:var(--dim); }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div class="demo-note">Демо v2 · детализированная модель · слайдер или автоцикл</div>
+<div class="wrap">
+  <div class="left">
+    <h1>Ремонт <em>без</em><br><em>сюрпризов</em></h1>
+    <div class="mono">Гомель · открываемся в ноябре</div>
+    <p>Диагностика, обслуживание, мелкий и средний ремонт. Окончательную цену называем до начала работ — и она не меняется.</p>
+    <div class="ctas">
+      <a class="btn primary" href="#">Записаться</a>
+      <a class="btn outline" href="#">Услуги и цены</a>
+    </div>
+  </div>
+  <div>
+    <div class="stage-panel">
+      <canvas id="stage"></canvas>
+      <div class="tag" data-part="caliper" data-ox="140" data-oy="-100"><b>Колодки</b><span>от 15 р</span></div>
+      <div class="tag hot" data-part="disc" data-ox="-150" data-oy="90"><b>Диагностика</b><span>0 р · первым 20</span></div>
+    </div>
+    <div class="controls">
+      <label>Собрано</label>
+      <input id="explode" type="range" min="0" max="100" value="0">
+      <label>Разобрано</label>
+    </div>
+    <div class="hint">Мышь — параллакс · клик — пауза вращения</div>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let explodeTarget = 0, explodeCurrent = 0, autoDemo = !reduced, spinOn = true;
+
+const panel = document.querySelector('.stage-panel');
+const canvas = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+camera.position.set(0, 0.2, 7.8);
+
+scene.add(new THREE.AmbientLight(0x3a3f47, 0.9));
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.position.set(4, 5, 6);
+scene.add(key);
+const rimLight = new THREE.PointLight(0xFF6B2C, 12, 16);
+rimLight.position.set(-3.6, -1.4, -2.5);
+scene.add(rimLight);
+
+const wheel = new THREE.Group();
+scene.add(wheel);
+const parts = [];
+
+function addPart(obj, dir, spin) {
+  obj.userData = { base: obj.position.clone(), dir, spin: spin || 0 };
+  wheel.add(obj);
+  parts.push(obj);
+  return obj;
+}
+
+/* ---- материалы ---- */
+const tireMat = new THREE.MeshStandardMaterial({ color: 0x17181c, roughness: 0.94, metalness: 0.02 });
+const rimMat = new THREE.MeshPhysicalMaterial({ color: 0x3c424b, roughness: 0.28, metalness: 1.0, clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 1.25 });
+const rimDark = new THREE.MeshPhysicalMaterial({ color: 0x23272d, roughness: 0.4, metalness: 1.0, envMapIntensity: 0.9 });
+const discMat = new THREE.MeshStandardMaterial({ color: 0x8d949e, roughness: 0.38, metalness: 1.0, envMapIntensity: 0.85 });
+const discHat = new THREE.MeshStandardMaterial({ color: 0x596069, roughness: 0.45, metalness: 1.0 });
+const caliperMat = new THREE.MeshPhysicalMaterial({ color: 0xFF6B2C, roughness: 0.35, metalness: 0.25, clearcoat: 1.0, clearcoatRoughness: 0.15 });
+const boltMat = new THREE.MeshStandardMaterial({ color: 0xd6dbe1, roughness: 0.28, metalness: 1.0, envMapIntensity: 1.2 });
+
+/* ---- ШИНА: lathe-профиль с боковинами ---- */
+const tireGrp = new THREE.Group();
+const profile = [
+  new THREE.Vector2(0.70, -0.16),
+  new THREE.Vector2(0.86, -0.20),
+  new THREE.Vector2(1.00, -0.185),
+  new THREE.Vector2(1.075, -0.13),
+  new THREE.Vector2(1.105, -0.05),
+  new THREE.Vector2(1.105, 0.05),
+  new THREE.Vector2(1.075, 0.13),
+  new THREE.Vector2(1.00, 0.185),
+  new THREE.Vector2(0.86, 0.20),
+  new THREE.Vector2(0.70, 0.16),
+];
+const tireMesh = new THREE.Mesh(new THREE.LatheGeometry(profile, 84), tireMat);
+tireMesh.rotation.x = Math.PI / 2;
+tireGrp.add(tireMesh);
+/* протекторные канавки */
+for (let g = -2; g <= 2; g++) {
+  const groove = new THREE.Mesh(
+    new THREE.TorusGeometry(1.106, 0.012, 8, 90),
+    new THREE.MeshStandardMaterial({ color: 0x0d0e11, roughness: 1 })
+  );
+  groove.position.z = g * 0.052;
+  tireGrp.add(groove);
+}
+/* хамп-кольца у борта */
+[[-0.175], [0.175]].forEach(([z]) => {
+  const hump = new THREE.Mesh(new THREE.TorusGeometry(0.715, 0.018, 10, 72), rimDark);
+  hump.position.z = z;
+  tireGrp.add(hump);
+});
+addPart(tireGrp, new THREE.Vector3(0, 0, 1.35), 0.0);
+
+/* ---- ДИСК: турбо-спицы ---- */
+const rimGrp = new THREE.Group();
+const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.70, 0.70, 0.34, 64, 1, true), rimDark);
+barrel.rotation.x = Math.PI / 2;
+rimGrp.add(barrel);
+const outerLip = new THREE.Mesh(new THREE.TorusGeometry(0.705, 0.028, 14, 80), rimMat);
+outerLip.position.z = 0.17;
+rimGrp.add(outerLip);
+const innerLip = new THREE.Mesh(new THREE.TorusGeometry(0.705, 0.028, 14, 80), rimMat);
+innerLip.position.z = -0.17;
+rimGrp.add(innerLip);
+for (let s = 0; s < 5; s++) {
+  const a = (s / 5) * Math.PI * 2 + Math.PI / 2;
+  const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.56, 0.055, 1, 2, 1), rimMat);
+  spoke.position.set(Math.cos(a) * 0.43, Math.sin(a) * 0.43, 0.145);
+  spoke.rotation.z = a - Math.PI / 2;
+  spoke.rotation.y = 0.42; /* турбо-закрутка */
+  rimGrp.add(spoke);
+  const spokeBack = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.5, 0.04), rimDark);
+  spokeBack.position.set(Math.cos(a) * 0.42, Math.sin(a) * 0.42, -0.02);
+  spokeBack.rotation.z = a - Math.PI / 2;
+  rimGrp.add(spokeBack);
+}
+const centerPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.05, 32), rimMat);
+centerPlate.rotation.x = Math.PI / 2;
+centerPlate.position.z = 0.16;
+rimGrp.add(centerPlate);
+const capRing = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.012, 10, 40), caliperMat);
+capRing.position.z = 0.19;
+rimGrp.add(capRing);
+addPart(rimGrp, new THREE.Vector3(0, 0, -1.55), -0.35);
+
+/* ---- ТОРМОЗНОЙ ДИСК: вентиляруемый, с шляпкой и отверстиями ---- */
+const discGrp = new THREE.Group();
+const discFace1 = new THREE.Mesh(new THREE.CylinderGeometry(0.545, 0.545, 0.028, 64), discMat);
+discFace1.rotation.x = Math.PI / 2;
+discFace1.position.z = 0.03;
+discGrp.add(discFace1);
+const discFace2 = new THREE.Mesh(new THREE.CylinderGeometry(0.545, 0.545, 0.028, 64), discMat);
+discFace2.rotation.x = Math.PI / 2;
+discFace2.position.z = -0.03;
+discGrp.add(discFace2);
+for (let v = 0; v < 36; v++) {
+  const va = (v / 36) * Math.PI * 2;
+  const vent = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.36, 0.05), discHat);
+  vent.position.set(Math.cos(va) * 0.34, Math.sin(va) * 0.34, 0);
+  vent.rotation.z = va;
+  discGrp.add(vent);
+}
+const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.22, 0.09, 32), discHat);
+hat.rotation.x = Math.PI / 2;
+hat.position.z = -0.07;
+discGrp.add(hat);
+for (let h = 0; h < 5; h++) {
+  const ha = (h / 5) * Math.PI * 2 + 0.3;
+  const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.16, 12), new THREE.MeshStandardMaterial({ color: 0x0f1114, roughness: 0.9 }));
+  hole.rotation.x = Math.PI / 2;
+  hole.position.set(Math.cos(ha) * 0.145, Math.sin(ha) * 0.145, -0.05);
+  discGrp.add(hole);
+}
+discGrp.position.z = -0.3;
+addPart(discGrp, new THREE.Vector3(0, 0, -4.3), 0.25);
+
+/* ---- СУППОРТ ---- */
+const caliperGrp = new THREE.Group();
+const calBody = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.56, 0.24), caliperMat);
+caliperGrp.add(calBody);
+const calBridge1 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.3, 20), caliperMat);
+calBridge1.rotation.x = Math.PI / 2;
+calBridge1.position.set(0, 0.24, 0);
+caliperGrp.add(calBridge1);
+const calBridge2 = calBridge1.clone();
+calBridge2.position.y = -0.24;
+caliperGrp.add(calBridge2);
+caliperGrp.position.set(0.62, 0.5, -0.3);
+addPart(caliperGrp, new THREE.Vector3(0.95, 1.0, -3.3), 0);
+
+/* ---- БОЛТЫ: шестигранники ---- */
+const boltsGrp = new THREE.Group();
+for (let b = 0; b < 5; b++) {
+  const ba = (b / 5) * Math.PI * 2 + 0.3;
+  const nut = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.09, 6), boltMat);
+  nut.rotation.x = Math.PI / 2;
+  nut.position.set(Math.cos(ba) * 0.145, Math.sin(ba) * 0.145, -0.28);
+  boltsGrp.add(nut);
+  const washer = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.008, 8, 24), boltMat);
+  washer.position.set(Math.cos(ba) * 0.145, Math.sin(ba) * 0.145, -0.23);
+  boltsGrp.add(washer);
+}
+addPart(boltsGrp, new THREE.Vector3(0, 0, -5.1), 0.8);
+
+/* ---- СТУПИЦА ---- */
+const hubGrp = new THREE.Group();
+const hubBody = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.3, 28), boltMat);
+hubBody.rotation.x = Math.PI / 2;
+hubGrp.add(hubBody);
+const hubFlange = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.05, 32), discHat);
+hubFlange.rotation.x = Math.PI / 2;
+hubFlange.position.z = 0.1;
+hubGrp.add(hubFlange);
+const absRing = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.014, 8, 48), new THREE.MeshStandardMaterial({ color: 0x8f959d, roughness: 0.5, metalness: 1 }));
+absRing.position.z = -0.1;
+hubGrp.add(absRing);
+hubGrp.position.z = -0.34;
+addPart(hubGrp, new THREE.Vector3(0, 0, -6.6), -0.5);
+
+/* ---- пыль ---- */
+const pGeo = new THREE.BufferGeometry();
+const pCount = 120;
+const pPos = new Float32Array(pCount * 3);
+for (let p = 0; p < pCount; p++) {
+  pPos[p * 3] = (Math.random() - 0.5) * 9;
+  pPos[p * 3 + 1] = (Math.random() - 0.5) * 9;
+  pPos[p * 3 + 2] = (Math.random() - 0.5) * 5;
+}
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+const dust = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0x6C737B, size: 0.028, transparent: true, opacity: 0.45 }));
+scene.add(dust);
+
+/* ---- ввод ---- */
+let mx = 0, my = 0;
+window.addEventListener('pointermove', (e) => {
+  const r = panel.getBoundingClientRect();
+  mx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+  my = ((e.clientY - r.top) / r.height - 0.5) * 2;
+}, { passive: true });
+canvas.addEventListener('click', () => { spinOn = !spinOn; });
+
+function layout() {
+  const w = panel.clientWidth, h = panel.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  wheel.scale.setScalar(Math.min(1.3, w / 480));
+}
+layout();
+window.addEventListener('resize', layout);
+
+const slider = document.getElementById('explode');
+slider.addEventListener('input', () => {
+  autoDemo = false;
+  explodeTarget = slider.value / 100;
+});
+
+/* ---- теги ---- */
+const partMap = { caliper: caliperGrp, disc: discGrp };
+const tags = [...document.querySelectorAll('.tag')].map((el) => ({ el, part: partMap[el.dataset.part], ox: +el.dataset.ox, oy: +el.dataset.oy }));
+const vp = new THREE.Vector3();
+function updateTags(e) {
+  const rect = panel.getBoundingClientRect();
+  for (const t of tags) {
+    t.part.getWorldPosition(vp);
+    vp.project(camera);
+    const x = (vp.x * 0.5 + 0.5) * rect.width + t.ox * (0.5 + e * 0.5);
+    const y = (-vp.y * 0.5 + 0.5) * rect.height + t.oy * (0.5 + e * 0.5);
+    t.el.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0) translate(-50%,-50%)`;
+    t.el.classList.toggle('on', e > 0.35);
+  }
+}
+
+/* ---- цикл ---- */
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+function render(t) {
+  if (autoDemo) {
+    const phase = (t % 9000) / 9000;
+    const bell = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+    explodeTarget = Math.pow(bell, 0.8);
+    slider.value = Math.round(explodeTarget * 100);
+  }
+  explodeCurrent += (explodeTarget - explodeCurrent) * 0.045;
+  const e = ease(Math.min(1, Math.max(0, explodeCurrent)));
+  for (const m of parts) {
+    m.position.copy(m.userData.base).addScaledVector(m.userData.dir, e);
+    if (m.userData.spin) m.rotation.z = m.userData.spin * e;
+  }
+  if (spinOn) wheel.rotation.z = t * 0.0002;
+  wheel.rotation.y = -0.55;
+  wheel.rotation.x = 0.16 + Math.sin(t * 0.0003) * 0.07;
+  dust.rotation.z = t * 0.00003;
+  camera.position.x += (mx * 0.55 - camera.position.x) * 0.05;
+  camera.position.y += (-my * 0.4 - camera.position.y) * 0.05;
+  camera.lookAt(0, 0, 0);
+  renderer.render(scene, camera);
+  updateTags(e);
+}
+
+if (reduced) {
+  explodeCurrent = explodeTarget = 0.85;
+  render(0);
+} else {
+  renderer.setAnimationLoop(render);
+}
+</script>
+</body>
+</html>

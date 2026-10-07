@@ -36,7 +36,7 @@ export function PriceTag({
   return (
     <span
       className={[
-        'inline-flex flex-wrap items-baseline gap-x-1.5 font-display font-bold',
+        'inline-flex flex-nowrap items-baseline gap-x-1.5 whitespace-nowrap font-display font-bold',
         highlight ? 'text-primary' : 'text-content',
         className,
       ]

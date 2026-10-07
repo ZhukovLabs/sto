@@ -38,6 +38,7 @@
   --color-primary-hover: #ff8448;
   --color-primary-active: #f0511a;
   --color-primary-ink: #1a0e06;
+  --color-primary-deep: #4a2410;
 
   --color-success: #3e9b6c;
   --color-success-soft: #12281d;
@@ -59,15 +60,28 @@
   --color-light-content-dim: #9aa1a8;
   --color-light-primary-ink: #ffffff;
 
-  --text-display-xl: 4.5rem;
+  --text-display-2xl: clamp(2.25rem, 8vw, 4.625rem);
+  --text-display-2xl--line-height: 1.05;
+  --text-display-2xl--letter-spacing: -0.015em;
+  --text-stat: clamp(2.5rem, 7vw, 4rem);
+  --text-stat--line-height: 1.05;
+  --text-stat--letter-spacing: -0.01em;
+  --text-display-sm: clamp(1.375rem, 3.5vw, 1.875rem);
+  --text-display-sm--line-height: 1.15;
+  --text-display-xs: clamp(1.125rem, 2.6vw, 1.375rem);
+  --text-display-xs--line-height: 1.2;
+  --text-display-xl: clamp(3rem, 10vw, 4.5rem);
   --text-display-xl--line-height: 1.05;
   --text-display-xl--letter-spacing: -0.02em;
-  --text-display-lg: 3.5rem;
+  --text-display-lg: clamp(2.25rem, 7.5vw, 3.5rem);
   --text-display-lg--line-height: 1.1;
   --text-display-lg--letter-spacing: -0.02em;
-  --text-display-md: 2.75rem;
+  --text-display-md: clamp(2rem, 6vw, 2.75rem);
   --text-display-md--line-height: 1.15;
   --text-display-md--letter-spacing: -0.015em;
+  --text-section: clamp(1.75rem, 5vw, 2.5rem);
+  --text-section--line-height: 1.15;
+  --text-section--letter-spacing: -0.01em;
   --text-h1: 2.5rem;
   --text-h1--line-height: 1.15;
   --text-h1--letter-spacing: -0.01em;
@@ -91,6 +105,8 @@
   --text-label--letter-spacing: 0.08em;
   --text-mono: 0.8125rem;
   --text-mono--line-height: 1.5;
+  --text-micro: 0.625rem;
+  --text-micro--line-height: 1.4;
 
   --font-weight-regular: 400;
   --font-weight-medium: 500;
@@ -118,18 +134,45 @@
   --animate-shimmer: shimmer 1.8s linear infinite;
   --animate-fade-in: fade-in 0.3s var(--ease-out) both;
   --animate-rise: rise 0.5s var(--ease-out) both;
+  --animate-modal-in: modal-in 0.25s var(--ease-out) both;
+  --animate-marquee: marquee 32s linear infinite;
+  --animate-line-reveal: line-reveal 0.6s var(--ease-out) both;
+  --animate-photo-in: photo-in 0.7s var(--ease-out) both;
 
   --space-section: 6rem;
   --space-section-sm: 4rem;
   --space-block: 3rem;
 
-  --container-site: 75rem;
-  --container-wide: 90rem;
+  /* Контентная область + гаттеры lg (2×2rem): site = 1200 контента, wide = 1440 */
+  --container-site: 79rem;
+  --container-wide: 98rem;
 
   --z-sticky: 100;
   --z-header: 200;
   --z-overlay: 300;
   --z-modal: 400;
+}
+
+@utility scroll-slim {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-content-dim) transparent;
+
+  &::-webkit-scrollbar {
+    width: 0.375rem;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-content-dim);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-content-muted);
+  }
 }
 
 @keyframes shimmer {
@@ -151,6 +194,32 @@
   from {
     opacity: 0;
     transform: translateY(12px);
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes line-reveal {
+  from {
+    transform: translateY(110%);
+  }
+}
+
+@keyframes photo-in {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
   }
 }
 
