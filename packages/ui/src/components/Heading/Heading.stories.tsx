@@ -8,7 +8,7 @@ const meta = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['display-xl', 'display-lg', 'display-md', 'h1', 'h2', 'h3', 'h4'],
+      options: ['display-2xl', 'display-xl', 'display-lg', 'display-md', 'h1', 'h2', 'h3', 'h4'],
     },
     color: { control: 'select', options: ['strong', 'muted', 'dim', 'accent', 'inherit'] },
     font: { control: 'radio', options: ['display', 'body'] },
@@ -26,6 +26,9 @@ export const Default: Story = {
 export const AllVariants: Story = {
   render: () => (
     <div className="flex flex-col gap-6">
+      <Heading variant="display-2xl" font="display">
+        Ремонт без сюрпризов
+      </Heading>
       <Heading variant="display-xl" font="display">
         МаксШнакс
       </Heading>

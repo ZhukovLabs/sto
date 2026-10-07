@@ -52,3 +52,5 @@ export { Skeleton } from './components/Skeleton/Skeleton';
 export type { SkeletonProps } from './components/Skeleton/Skeleton';
 export { VisuallyHidden } from './components/VisuallyHidden/VisuallyHidden';
 export type { VisuallyHiddenProps } from './components/VisuallyHidden/VisuallyHidden';
+export { BynSign } from './components/BynSign/BynSign';
+export type { BynSignProps } from './components/BynSign/BynSign';

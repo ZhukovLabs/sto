@@ -1,7 +1,7 @@
 import type { ElementType, HTMLAttributes, ReactNode } from 'react';
 import type { TextColor } from '../Heading/Heading';
 
-export type TextVariant = 'lead' | 'body-lg' | 'body' | 'caption' | 'label' | 'mono';
+export type TextVariant = 'lead' | 'body-lg' | 'body' | 'caption' | 'micro' | 'label' | 'mono';
 
 export interface TextProps extends HTMLAttributes<HTMLElement> {
   as?: ElementType;
@@ -17,6 +17,7 @@ const variantClass: Record<TextVariant, string> = {
   'body-lg': 'text-body-lg font-normal',
   body: 'text-body font-normal',
   caption: 'text-caption font-normal',
+  micro: 'text-micro font-normal',
   label: 'text-label font-semibold uppercase',
   mono: 'text-mono font-mono font-normal',
 };
