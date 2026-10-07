@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { Footer } from '@/widgets/footer';
+import { Header } from '@/widgets/header';
 
 export const metadata: Metadata = {
   title: 'СТО «ПроМакс» — автосервис в Гомеле',
@@ -14,7 +16,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className="bg-bg font-sans text-content antialiased">{children}</body>
+      <body className="bg-bg font-sans text-content antialiased">
+        <Header />
+        {children}
+        <Footer />
+      </body>
     </html>
   );
 }
