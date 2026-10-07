@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" className="scroll-slim">
       <body className="bg-bg font-sans text-content antialiased">
         <Header />
         {children}

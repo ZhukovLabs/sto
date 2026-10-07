@@ -12,14 +12,14 @@ export function Contacts() {
     <section id="contacts" className="border-b border-border">
       <Container size="site" className="py-16 lg:py-[72px]">
         <div className="grid items-stretch gap-3.5 lg:grid-cols-[8fr_4fr]">
-          <div className="relative aspect-[16/9] overflow-hidden rounded-lg border border-border lg:col-start-1 lg:row-start-1">
+          <div className="group relative aspect-[16/9] overflow-hidden rounded-lg border border-border lg:col-start-1 lg:row-start-1">
             <Image
               src="/contacts/workshop.webp"
               alt="Цех автосервиса «ПроМакс»"
               fill
               priority
               sizes="(min-width: 1024px) 60vw, 100vw"
-              className="object-cover"
+              className="object-cover transition-[scale] duration-500 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
             />
             <span className="absolute left-4 top-4 rounded-lg border border-border bg-panel-2 px-3.5 py-2.5 font-mono text-caption uppercase tracking-[0.1em] text-content">
               {site.city} · {site.hours.short}

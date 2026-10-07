@@ -112,7 +112,7 @@ function FeaturedCard({ featured, className }: { featured: Service; className?: 
             alt=""
             fill
             sizes="(min-width: 1024px) 40vw, 100vw"
-            className="object-cover opacity-45 transition-opacity duration-300 group-hover:opacity-55"
+            className="object-cover opacity-45 transition-[opacity,scale] duration-500 group-hover:scale-[1.03] group-hover:opacity-55 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
           <span
             aria-hidden="true"
@@ -153,7 +153,7 @@ function ServiceCard({ service, className }: { service: Service; className?: str
             alt=""
             fill
             sizes="(min-width: 1024px) 20vw, 45vw"
-            className="hidden object-cover opacity-55 transition-opacity duration-300 group-hover:opacity-70 sm:block"
+            className="hidden object-cover opacity-55 transition-[opacity,scale] duration-500 group-hover:scale-[1.03] group-hover:opacity-70 motion-reduce:transition-none motion-reduce:group-hover:scale-100 sm:block"
           />
           <span
             aria-hidden="true"

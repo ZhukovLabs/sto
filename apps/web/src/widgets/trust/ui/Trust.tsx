@@ -17,7 +17,10 @@ export async function Trust() {
 
         <div className="mt-8 grid gap-3.5 sm:grid-cols-3">
           {team.map((member) => (
-            <article key={member.name} className="rounded-lg border border-border bg-panel p-5">
+            <article
+              key={member.name}
+              className="group rounded-lg border border-border bg-panel p-5"
+            >
               <div
                 className={`relative -mx-5 -mt-5 mb-4 flex aspect-square items-center justify-center overflow-hidden rounded-t-lg border-b ${
                   member.photo ? '' : 'border-dashed'
@@ -29,7 +32,7 @@ export async function Trust() {
                     alt={member.photoAlt ?? member.name}
                     fill
                     sizes="(min-width: 1024px) 30vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-cover"
+                    className="object-cover transition-[scale] duration-500 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                   />
                 ) : (
                   <span className="flex flex-col items-center gap-2 font-mono text-content-dim">
