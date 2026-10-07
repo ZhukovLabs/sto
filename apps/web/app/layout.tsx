@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'СТО',
-  description: 'Автосервис',
+  title: 'СТО «ПроМакс» — автосервис в Гомеле',
+  description:
+    'Честный автосервис в Гомеле: смета до ремонта, договор и гарантия 6 месяцев. Диагностика подвески первым 20 клиентам — бесплатно.',
 };
 
 export default function RootLayout({
@@ -13,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className="font-sans antialiased">{children}</body>
+      <body className="bg-bg font-sans text-content antialiased">{children}</body>
     </html>
   );
 }
