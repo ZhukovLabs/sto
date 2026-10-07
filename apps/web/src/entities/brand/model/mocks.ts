@@ -1,6 +1,6 @@
 import type { Brand } from './types';
 
-const brands: Brand[] = [
+export const BRANDS: Brand[] = [
   { id: 'renault', name: 'Renault' },
   { id: 'kia', name: 'Kia' },
   { id: 'hyundai', name: 'Hyundai' },
@@ -10,7 +10,3 @@ const brands: Brand[] = [
   { id: 'ford', name: 'Ford' },
   { id: 'nissan', name: 'Nissan' },
 ];
-
-export function getBrands(): Brand[] {
-  return brands;
-}
