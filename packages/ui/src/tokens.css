@@ -38,6 +38,7 @@
   --color-primary-hover: #ff8448;
   --color-primary-active: #f0511a;
   --color-primary-ink: #1a0e06;
+  --color-primary-deep: #4a2410;
 
   --color-success: #3e9b6c;
   --color-success-soft: #12281d;
@@ -75,6 +76,9 @@
   --text-display-md: clamp(2rem, 6vw, 2.75rem);
   --text-display-md--line-height: 1.15;
   --text-display-md--letter-spacing: -0.015em;
+  --text-section: clamp(1.75rem, 5vw, 2.5rem);
+  --text-section--line-height: 1.15;
+  --text-section--letter-spacing: -0.01em;
   --text-h1: 2.5rem;
   --text-h1--line-height: 1.15;
   --text-h1--letter-spacing: -0.01em;
