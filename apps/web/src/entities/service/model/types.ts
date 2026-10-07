@@ -6,6 +6,7 @@ export interface Service {
   priceFrom: number;
   priceTo?: number;
   unit?: string;
-  fixed?: boolean;
   popular?: boolean;
+  /** Путь к фото-подложке карточки в public, напр. '/services/brakes.webp' */
+  photo?: string;
 }
