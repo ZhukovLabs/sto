@@ -1,20 +1,13 @@
 import Image from 'next/image';
-import { ArrowDown } from 'lucide-react';
 import { Button, Container, Heading, Text } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
 import { site } from '@/shared/config/site';
 
 export function Hero() {
   return (
-    <section
-      id="hero"
-      className="flex min-h-[calc(100dvh-3.5rem)] flex-col border-b border-border sm:min-h-[calc(100dvh-4rem)]"
-    >
-      <Container
-        size="site"
-        className="flex flex-1 flex-col justify-center pb-12 pt-12 lg:pb-12 lg:pt-16"
-      >
-        <div className="grid my-auto items-start gap-10 lg:grid-cols-[7fr_5fr] lg:gap-12">
+    <section id="hero" className="border-b border-border">
+      <Container size="site" className="pb-12 pt-12 lg:pt-16">
+        <div className="grid items-start gap-10 lg:grid-cols-[7fr_5fr] lg:gap-12">
           <div className="flex flex-col gap-[30px]">
             <Heading variant="display-2xl" font="display" className="uppercase">
               <span className="block overflow-hidden pb-[0.08em]">
@@ -72,32 +65,13 @@ export function Hero() {
               muted
               playsInline
               preload="metadata"
+              poster="/hero/garage.webp"
               aria-hidden="true"
             >
               <source src="/hero/garage-loop.mp4" type="video/mp4" />
             </video>
           </div>
         </div>
-
-        <a
-          href="#services"
-          className="group mt-10 flex animate-rise items-center gap-3.5 [animation-delay:440ms] pb-1 motion-reduce:animate-none"
-        >
-          <Text
-            variant="caption"
-            className="font-mono uppercase tracking-[0.14em] text-content-dim transition-colors group-hover:text-content"
-          >
-            Услуги ниже
-          </Text>
-          <span
-            aria-hidden="true"
-            className="h-px flex-1 bg-border transition-colors group-hover:bg-primary/40"
-          />
-          <ArrowDown
-            aria-hidden="true"
-            className="size-4 shrink-0 text-content-dim transition-all group-hover:translate-y-0.5 group-hover:text-primary"
-          />
-        </a>
       </Container>
     </section>
   );
