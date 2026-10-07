@@ -5,6 +5,7 @@ export type HeadingVariant =
   | 'display-xl'
   | 'display-lg'
   | 'section'
+  | 'stat'
   | 'display-md'
   | 'display-sm'
   | 'display-xs'
@@ -30,6 +31,7 @@ const variantClass: Record<HeadingVariant, string> = {
   'display-xl': 'text-display-xl font-extrabold',
   'display-lg': 'text-display-lg font-extrabold',
   section: 'text-section font-bold',
+  stat: 'text-stat font-bold',
   'display-md': 'text-display-md font-bold',
   'display-sm': 'text-display-sm font-extrabold',
   'display-xs': 'text-display-xs font-extrabold',
@@ -52,6 +54,7 @@ const defaultTag: Record<HeadingVariant, ElementType> = {
   'display-xl': 'h1',
   'display-lg': 'h1',
   section: 'h2',
+  stat: 'p',
   'display-md': 'h1',
   'display-sm': 'h2',
   'display-xs': 'h2',
