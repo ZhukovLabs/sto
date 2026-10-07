@@ -54,3 +54,15 @@ export { VisuallyHidden } from './components/VisuallyHidden/VisuallyHidden';
 export type { VisuallyHiddenProps } from './components/VisuallyHidden/VisuallyHidden';
 export { BynSign } from './components/BynSign/BynSign';
 export type { BynSignProps } from './components/BynSign/BynSign';
+
+export { Modal } from './components/Modal/Modal';
+export type { ModalProps, ModalSize } from './components/Modal/Modal';
+export { DatePicker } from './components/DatePicker/DatePicker';
+export type { DatePickerProps } from './components/DatePicker/DatePicker';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './components/Tabs/Tabs';
+export type {
+  TabsProps,
+  TabsListProps,
+  TabsTriggerProps,
+  TabsContentProps,
+} from './components/Tabs/Tabs';
