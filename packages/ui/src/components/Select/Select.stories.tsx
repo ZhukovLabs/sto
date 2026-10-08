@@ -82,6 +82,22 @@ export const ManyOptions: Story = {
     label: 'Услуга',
     placeholder: 'Выберите услугу',
     options: allServices,
-    helper: 'Полный прайс — 15 позиций, список скроллится',
+    helper: 'Много услуг - 15 позиций, длинные названия',
+  },
+};
+
+export const Multiple: Story = {
+  render: () => {
+    return (
+      <Frame>
+        <Select
+          multiple
+          label="Услуги"
+          placeholder="Выберите одну или несколько"
+          options={allServices}
+          helper="Можно выбрать несколько - список не закрывается"
+        />
+      </Frame>
+    );
   },
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 const MONTHS_NOM = [
@@ -44,7 +44,7 @@ export interface DatePickerProps {
   onChange: (iso: string) => void;
   label?: string;
   placeholder?: string;
-  error?: string;
+  error?: ReactNode;
   helper?: string;
   min?: string;
   max?: string;

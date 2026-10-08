@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export type FieldSize = 'sm' | 'md' | 'lg';
 
-export const fieldControlClass = (error?: string) =>
+export const fieldControlClass = (error?: unknown) =>
   [
     'w-full bg-panel border px-4 text-content placeholder:text-content-dim transition-colors duration-150',
     'focus:outline-none focus:ring-2 focus:ring-focus focus:ring-offset-2 focus:ring-offset-bg',
@@ -39,8 +39,8 @@ export function FieldCaption({
   errorId,
   helperId,
 }: {
-  error?: string;
-  helper?: string;
+  error?: ReactNode;
+  helper?: ReactNode;
   errorId: string;
   helperId: string;
 }) {
@@ -66,8 +66,8 @@ export function fieldCaptionIds(id: string) {
 }
 
 export const fieldDescribedBy = (
-  error: string | undefined,
-  helper: string | undefined,
+  error: unknown,
+  helper: unknown,
   errorId: string,
   helperId: string,
 ) => (error ? errorId : helper ? helperId : undefined) as string | undefined;

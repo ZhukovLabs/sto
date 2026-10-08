@@ -1,4 +1,4 @@
-import { useId, type TextareaHTMLAttributes } from 'react';
+import { useId, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import {
   FieldCaption,
   FieldLabel,
@@ -10,8 +10,8 @@ import {
 
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
-  helper?: string;
-  error?: string;
+  helper?: ReactNode;
+  error?: ReactNode;
   size?: FieldSize;
 }
 

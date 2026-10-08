@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ReactNode,
   type SelectHTMLAttributes,
 } from 'react';
 import {
@@ -22,20 +23,35 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-export interface SelectProps extends Omit<
+interface SelectBaseProps extends Omit<
   SelectHTMLAttributes<HTMLDivElement>,
   'children' | 'size' | 'onChange' | 'value'
 > {
   options: SelectOption[];
   label?: string;
-  helper?: string;
-  error?: string;
+  helper?: ReactNode;
+  error?: ReactNode;
   placeholder?: string;
   size?: FieldSize;
+  name?: string;
+  multiple?: boolean;
+}
+
+export interface SelectSingleProps extends SelectBaseProps {
+  multiple?: false;
   value?: string;
   defaultValue?: string;
   onChange?: (value: string) => void;
 }
+
+export interface SelectMultiProps extends SelectBaseProps {
+  multiple: true;
+  value?: string[];
+  defaultValue?: string[];
+  onChange?: (value: string[]) => void;
+}
+
+export type SelectProps = SelectSingleProps | SelectMultiProps;
 
 const sizeClass: Record<FieldSize, string> = {
   sm: 'h-10 text-body rounded-md',
@@ -64,25 +80,35 @@ export function Select({
   required,
   disabled,
   name,
+  multiple = false,
   ...props
 }: SelectProps) {
   const selectId = id ?? useId();
   const listboxId = `${selectId}-listbox`;
   const { helperId, errorId } = fieldCaptionIds(selectId);
 
-  const [uncontrolledValue, setUncontrolledValue] = useState(
-    defaultValue ?? (placeholder ? '' : (options[0]?.value ?? '')),
+  const [uncontrolledValue, setUncontrolledValue] = useState<string | string[]>(
+    multiple
+      ? ((defaultValue as string[] | undefined) ?? [])
+      : ((defaultValue as string | undefined) ?? (placeholder ? '' : (options[0]?.value ?? ''))),
   );
   const value = controlledValue ?? uncontrolledValue;
-  const selected = options.find((option) => option.value === value);
+  const multiValues = multiple && Array.isArray(value) ? value : [];
+  const selected =
+    !multiple && typeof value === 'string'
+      ? options.find((option) => option.value === value)
+      : undefined;
+  const handleChange = onChange as ((value: string | string[]) => void) | undefined;
 
   const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(() =>
-    Math.max(
-      0,
-      options.findIndex((option) => option.value === value),
-    ),
-  );
+  const [activeIndex, setActiveIndex] = useState(() => {
+    const initial = multiple
+      ? multiValues[0] !== undefined
+        ? options.findIndex((option) => option.value === multiValues[0])
+        : -1
+      : options.findIndex((option) => option.value === value);
+    return Math.max(0, initial);
+  });
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -139,8 +165,16 @@ export function Select({
   const commit = (index: number) => {
     const option = options[index];
     if (!option || option.disabled) return;
+    if (multiple) {
+      const next = multiValues.includes(option.value)
+        ? multiValues.filter((item) => item !== option.value)
+        : [...multiValues, option.value];
+      setUncontrolledValue(next);
+      handleChange?.(next);
+      return;
+    }
     setUncontrolledValue(option.value);
-    onChange?.(option.value);
+    handleChange?.(option.value);
     setOpen(false);
     triggerRef.current?.focus();
   };
@@ -160,9 +194,16 @@ export function Select({
   const openList = (preferEnd = false) => {
     const firstSelectable = selectableIndexes[0];
     const lastSelectable = selectableIndexes[selectableIndexes.length - 1];
-    setActiveIndex(
-      selected
+    const currentIndex = multiple
+      ? multiValues[0] !== undefined
+        ? options.findIndex((option) => option.value === multiValues[0])
+        : -1
+      : selected
         ? options.indexOf(selected)
+        : -1;
+    setActiveIndex(
+      currentIndex >= 0
+        ? currentIndex
         : preferEnd
           ? (lastSelectable ?? firstSelectable ?? 0)
           : (firstSelectable ?? 0),
@@ -233,7 +274,9 @@ export function Select({
       {...props}
     >
       {label ? <FieldLabel htmlFor={selectId} label={label} required={required} /> : null}
-      {name && value !== undefined ? <input type="hidden" name={name} value={value} /> : null}
+      {name && value !== undefined ? (
+        <input type="hidden" name={name} value={Array.isArray(value) ? value.join(',') : value} />
+      ) : null}
       <div className="relative">
         <button
           ref={triggerRef}
@@ -252,8 +295,20 @@ export function Select({
           onClick={() => (open ? setOpen(false) : openList())}
         >
           <span className="absolute inset-y-0 right-10 left-4 flex items-center">
-            <span className={`block truncate ${selected ? '' : 'text-content-dim'}`}>
-              {selected ? selected.label : (placeholder ?? '')}
+            <span
+              className={`block truncate ${
+                selected || multiValues.length > 0 ? '' : 'text-content-dim'
+              }`}
+            >
+              {multiple
+                ? multiValues.length > 0
+                  ? multiValues
+                      .map((item) => options.find((option) => option.value === item)?.label ?? item)
+                      .join(', ')
+                  : (placeholder ?? '')
+                : selected
+                  ? selected.label
+                  : (placeholder ?? '')}
             </span>
           </span>
           <svg
@@ -279,6 +334,7 @@ export function Select({
               id={listboxId}
               role="listbox"
               aria-labelledby={label ? selectId : undefined}
+              aria-multiselectable={multiple || undefined}
               ref={listRef}
               onScroll={measureThumb}
               className="max-h-60 overflow-y-auto overscroll-contain pr-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -287,11 +343,16 @@ export function Select({
                 <div
                   id={`${listboxId}-option--1`}
                   role="option"
-                  aria-selected={!selected}
+                  aria-selected={multiple ? multiValues.length === 0 : !selected}
                   className="cursor-pointer rounded-md px-3 py-2 text-content-dim hover:bg-panel-2"
                   onClick={() => {
+                    if (multiple) {
+                      setUncontrolledValue([]);
+                      handleChange?.([]);
+                      return;
+                    }
                     setUncontrolledValue('');
-                    onChange?.('');
+                    handleChange?.('');
                     setOpen(false);
                     triggerRef.current?.focus();
                   }}
@@ -300,7 +361,9 @@ export function Select({
                 </div>
               ) : null}
               {options.map((option, index) => {
-                const isSelected = selected?.value === option.value;
+                const isSelected = multiple
+                  ? multiValues.includes(option.value)
+                  : selected?.value === option.value;
                 return (
                   <div
                     key={option.value}
