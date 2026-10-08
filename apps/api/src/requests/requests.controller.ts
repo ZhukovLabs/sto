@@ -20,7 +20,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
+import { randomUUID } from 'node:crypto';
 import { BearerTokenGuard } from '../auth/bearer-token.guard';
+import { assertCaptchaAllowed, isHoneypotFilled, registerCreation } from '../anti-abuse';
+import { verifyCaptchaToken } from '../anti-abuse/yandex-captcha';
 import { REQUEST_STATUSES, type RequestStatus } from './telegram';
 import { RequestsService } from './requests.service';
 
@@ -30,6 +33,12 @@ class CreateRequestBody {
 
   @ApiProperty({ example: '+375 29 123-45-67' })
   phone!: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Honeypot-поле: заполнено только ботами',
+  })
+  company?: string;
 }
 
 class UpdateRequestStatusBody {
@@ -95,15 +104,38 @@ export class RequestsController {
     required: false,
     description: 'Ключ идемпотентности (8–64 символа)',
   })
+  @ApiHeader({
+    name: 'x-captcha-token',
+    required: false,
+    description: 'Токен Яндекс SmartCaptcha — нужен при повторных отправках',
+  })
   @ApiResponse({ status: 201, type: CreateRequestResponse })
+  @ApiResponse({ status: 428, description: 'Требуется прохождение капчи' })
   @ApiResponse({ status: 429, description: 'Слишком много заявок с одного адреса' })
   async create(
     @Body() body: CreateRequestBody,
     @Req() request: Request,
     @Headers('idempotency-key') idempotencyKey?: string,
+    @Headers('x-captcha-token') captchaToken?: string,
   ): Promise<CreateRequestResponse> {
-    const clientKey = `request|${request.ip ?? 'unknown'}`;
-    return this.requestsService.create(body.name, body.phone, clientKey, idempotencyKey);
+    const ip = request.ip ?? 'unknown';
+    if (isHoneypotFilled(body.company)) {
+      // Бот заполнил невидимое поле — молча имитируем успех, ничего не создавая.
+      return { id: randomUUID(), duplicate: false };
+    }
+    const captchaPassed = captchaToken ? await verifyCaptchaToken(captchaToken, ip) : false;
+    assertCaptchaAllowed(ip, captchaPassed);
+    const clientKey = `request|${ip}`;
+    const result = await this.requestsService.create(
+      body.name,
+      body.phone,
+      clientKey,
+      idempotencyKey,
+    );
+    if (!result.duplicate) {
+      registerCreation(ip);
+    }
+    return result;
   }
 
   @Get()

@@ -2,7 +2,7 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AUTH_SECRET } from './auth.constants';
 import { verifyPassword } from './password';
-import { isBlocked, registerFailure, reset } from './rate-limiter';
+import { loginRateLimiter } from './rate-limiter';
 import {
   createSessionToken,
   SESSION_TTL_SECONDS,
@@ -33,17 +33,17 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string, clientKey: string): Promise<LoginResult> {
-    if (isBlocked(clientKey)) {
+    if (loginRateLimiter.isBlocked(clientKey)) {
       throw new UnauthorizedException('Слишком много попыток входа. Повторите через 15 минут');
     }
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
     const passwordOk = user !== null && (await verifyPassword(password, user.passwordHash));
     if (user === null || !passwordOk) {
-      registerFailure(clientKey);
+      loginRateLimiter.registerFailure(clientKey);
       throw new UnauthorizedException(GENERIC_LOGIN_ERROR);
     }
-    reset(clientKey);
+    loginRateLimiter.reset(clientKey);
     return { ...this.issueToken(user.id), user };
   }
 
