@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
+import { BookingModule } from './booking/booking.module';
 import { MastersModule } from './masters/masters.module';
 import { PersonalTelegramModule } from './personal-telegram';
 import { PrismaModule } from './prisma/prisma.module';
@@ -19,6 +20,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AuthModule,
     RequestsModule,
     MastersModule,
+    BookingModule,
   ],
   controllers: [AppController],
 })

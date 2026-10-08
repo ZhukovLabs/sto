@@ -1,3 +1,5 @@
+import type { PrismaService } from '../prisma/prisma.service';
+
 const TELEGRAM_API = 'https://api.telegram.org';
 
 export const REQUEST_STATUSES = ['new', 'called', 'taken', 'cancelled'] as const;
@@ -82,7 +84,7 @@ export async function sendTelegramMessage(
   return data.result.message_id;
 }
 
-interface InlineButton {
+export interface InlineButton {
   text: string;
   callback_data: string;
 }
@@ -109,19 +111,13 @@ export interface RequestMessageRef {
 }
 
 /**
- * Компакция по каждому чату: удаляет все сообщения заявки, кроме последнего
- * (низ чата), оставшееся редактирует под актуальный статус.
- * Возвращает id строк, которые ещё живут в Telegram (пустой список — если
- * и последние недоступны, например удалены пользователем).
+ * Компакция по каждому чату: удаляет все сообщения, кроме последнего
+ * (низ чата), оставшееся редактирует с переданной клавиатурой.
+ * Возвращает id строк, которые ещё живут в Telegram.
  */
-export async function compactRequestMessages(
+export async function compactMessages(
   config: TelegramConfig,
-  message: {
-    messages: RequestMessageRef[];
-    requestId: string;
-    status: RequestStatus;
-    text: string;
-  },
+  message: { messages: RequestMessageRef[]; text: string; keyboards: InlineButton[][] },
 ): Promise<string[]> {
   const byChat = new Map<ChatId, RequestMessageRef[]>();
   for (const ref of message.messages) {
@@ -135,7 +131,7 @@ export async function compactRequestMessages(
 
   const alive: string[] = [];
   for (const [chatId, refs] of byChat) {
-    // С конца: свежие напоминания внизу чата обновляются первыми.
+    // С конца: свежие сообщения внизу чата обновляются первыми.
     const ordered = [...refs].sort((a, b) => a.messageId - b.messageId);
     const survivor = ordered[ordered.length - 1];
     for (const ref of ordered.slice(0, -1)) {
@@ -157,7 +153,7 @@ export async function compactRequestMessages(
         text: message.text,
         parse_mode: 'HTML',
         disable_web_page_preview: true,
-        reply_markup: { inline_keyboard: keyboardsFor(message.status, message.requestId) },
+        reply_markup: { inline_keyboard: message.keyboards },
       });
       alive.push(survivor.id);
     } catch (error: unknown) {
@@ -167,6 +163,26 @@ export async function compactRequestMessages(
     }
   }
   return alive;
+}
+
+/**
+ * Компакция сообщений заявки: удаляет все сообщения заявки, кроме последнего
+ * (низ чата), оставшееся редактирует под актуальный статус.
+ */
+export async function compactRequestMessages(
+  config: TelegramConfig,
+  message: {
+    messages: RequestMessageRef[];
+    requestId: string;
+    status: RequestStatus;
+    text: string;
+  },
+): Promise<string[]> {
+  return compactMessages(config, {
+    messages: message.messages,
+    text: message.text,
+    keyboards: keyboardsFor(message.status, message.requestId),
+  });
 }
 
 export interface TelegramUpdate {
@@ -215,6 +231,45 @@ export async function dropWebhook(config: TelegramConfig): Promise<void> {
       }
     },
   );
+}
+
+/** Чаты активных мастеров. Ошибка чтения — пустой список (ошибку отдаём в onError). */
+export async function loadActiveMasterChats(
+  prisma: PrismaService,
+  onError?: (error: unknown) => void,
+): Promise<bigint[]> {
+  return prisma.master
+    .findMany({ where: { isActive: true }, select: { telegramChatId: true } })
+    .then((masters: Array<{ telegramChatId: bigint }>) =>
+      masters.map((master) => master.telegramChatId),
+    )
+    .catch((error: unknown): bigint[] => {
+      onError?.(error);
+      return [];
+    });
+}
+
+/**
+ * Рассылает сообщение по чатам мастеров, ошибки каждого чата уходит в onError.
+ * Возвращает доставленные пары чат/сообщение для сохранения в БД.
+ */
+export async function broadcastToMasters(
+  config: TelegramConfig,
+  chats: readonly bigint[],
+  html: string,
+  buttons: InlineButton[][],
+  onError: (chatId: bigint, error: unknown) => void,
+): Promise<Array<{ chatId: bigint; messageId: number }>> {
+  const delivered: Array<{ chatId: bigint; messageId: number }> = [];
+  for (const chatId of chats) {
+    try {
+      const messageId = await sendTelegramMessage(config, chatId, html, buttons);
+      delivered.push({ chatId, messageId });
+    } catch (error: unknown) {
+      onError(chatId, error);
+    }
+  }
+  return delivered;
 }
 
 function escapeHtml(value: string): string {
