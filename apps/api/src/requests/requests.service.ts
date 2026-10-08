@@ -8,16 +8,19 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { loadEnv } from '../env';
-import { isBlocked, registerFailure } from '../auth/rate-limiter';
+import { normalizeBelarusPhone } from '../phones';
+import { formatCallbackConfirmation, NotificationService } from '../notifications';
+import { publicCreateRateLimiter } from '../auth/rate-limiter';
 import {
   REQUEST_STATUSES,
+  broadcastToMasters,
   compactRequestMessages,
   formatReminderMessage,
   formatRequestMessage,
   isRequestStatus,
   isTelegramEnabled,
   keyboardsFor,
-  sendTelegramMessage,
+  loadActiveMasterChats,
   type RequestMessageRef,
   type RequestStatus,
   type TelegramConfig,
@@ -36,7 +39,10 @@ export class RequestsService {
   private readonly logger = new Logger(RequestsService.name);
   private readonly telegram: TelegramConfig | null;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationService,
+  ) {
     const env = loadEnv();
     this.telegram =
       env.TELEGRAM_BOT_TOKEN !== undefined ? { botToken: env.TELEGRAM_BOT_TOKEN } : null;
@@ -52,7 +58,7 @@ export class RequestsService {
     clientKey: string,
     idempotencyKey?: string,
   ): Promise<{ id: string; duplicate: boolean }> {
-    if (isBlocked(clientKey)) {
+    if (publicCreateRateLimiter.isBlocked(clientKey)) {
       throw new HttpException(
         'Слишком много заявок, попробуйте позже',
         HttpStatus.TOO_MANY_REQUESTS,
@@ -65,6 +71,11 @@ export class RequestsService {
     }
     if (!PHONE_PATTERN.test(cleanPhone)) {
       throw new BadRequestException('Некорректный номер телефона');
+    }
+    if (normalizeBelarusPhone(cleanPhone) === null) {
+      throw new BadRequestException(
+        'Укажите белорусский мобильный номер: +375 25/29/33/44 и 7 цифр',
+      );
     }
     if (idempotencyKey !== undefined && !IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey)) {
       throw new BadRequestException('Некорректный Idempotency-Key');
@@ -107,7 +118,9 @@ export class RequestsService {
       }
       return { id: existing.id, duplicate: true };
     }
-    registerFailure(clientKey);
+    publicCreateRateLimiter.registerFailure(clientKey);
+
+    this.notifications.deliver(cleanPhone, formatCallbackConfirmation());
 
     this.notify(created.id, { name: cleanName, phone: cleanPhone, createdAt: new Date() });
     return { id: created.id, duplicate: false };
@@ -173,10 +186,9 @@ export class RequestsService {
     if (stale.length === 0) {
       return 0;
     }
-    const masters = await this.prisma.master.findMany({
-      where: { isActive: true },
-      select: { telegramChatId: true },
-    });
+    const masters = await loadActiveMasterChats(this.prisma, (error) =>
+      this.logger.error(`Не прочитались мастера для напоминаний: ${String(error)}`),
+    );
     if (masters.length === 0) {
       this.logger.warn('Нет активных мастеров — напоминания не отправлены');
       return 0;
@@ -186,22 +198,16 @@ export class RequestsService {
       const hoursWaiting = Math.floor((now.getTime() - request.createdAt.getTime()) / HOUR_MS);
       const html = formatReminderMessage(request, hoursWaiting);
       const buttons = keyboardsFor('new', request.id);
-      const delivered: Array<{ chatId: bigint; messageId: number }> = [];
-      for (const master of masters) {
-        try {
-          const messageId = await sendTelegramMessage(
-            this.telegram,
-            master.telegramChatId,
-            html,
-            buttons,
-          );
-          delivered.push({ chatId: master.telegramChatId, messageId });
-        } catch (error: unknown) {
+      const delivered = await broadcastToMasters(
+        this.telegram,
+        masters,
+        html,
+        buttons,
+        (chatId, error) =>
           this.logger.error(
-            `Напоминание ${request.id} не ушло мастеру ${master.telegramChatId}: ${String(error)}`,
-          );
-        }
-      }
+            `Напоминание ${request.id} не ушло мастеру ${chatId}: ${String(error)}`,
+          ),
+      );
       if (delivered.length === 0) {
         continue;
       }
@@ -234,32 +240,39 @@ export class RequestsService {
     }
     const config = this.telegram;
     void (async () => {
-      const masters = await this.prisma.master
-        .findMany({ where: { isActive: true }, select: { telegramChatId: true } })
-        .catch((error: unknown): Array<{ telegramChatId: bigint }> => {
-          this.logger.error(`Не прочитались мастера для заявки ${id}: ${String(error)}`);
-          return [];
-        });
-      if (masters.length === 0) {
+      const chats = await loadActiveMasterChats(this.prisma, (error) =>
+        this.logger.error(`Не прочитались мастера для заявки ${id}: ${String(error)}`),
+      );
+      if (chats.length === 0) {
         this.logger.warn(`Нет активных мастеров — заявка ${id} не отправлена в Telegram`);
         return;
       }
-      const html = formatRequestMessage(contact);
-      const buttons = keyboardsFor('new', id);
-      for (const master of masters) {
-        try {
-          const messageId = await sendTelegramMessage(config, master.telegramChatId, html, buttons);
-          await this.prisma.requestMessage.create({
-            data: { requestId: id, chatId: master.telegramChatId, messageId },
-            select: { id: true },
-          });
-        } catch (error: unknown) {
-          this.logger.error(
-            `Уведомление ${id} не ушло мастеру ${master.telegramChatId}: ${String(error)}`,
-          );
-        }
-      }
+      const delivered = await broadcastToMasters(
+        config,
+        chats,
+        formatRequestMessage(contact),
+        keyboardsFor('new', id),
+        (chatId, error) =>
+          this.logger.error(`Уведомление ${id} не ушло мастеру ${chatId}: ${String(error)}`),
+      );
+      await this.saveMessageRows(
+        delivered.map((item) => ({ requestId: id, ...item })),
+        `Не сохранились сообщения заявки ${id}`,
+      );
     })();
+  }
+
+  private async saveMessageRows(
+    data: Array<{ requestId: string; chatId: bigint; messageId: number }>,
+    errorContext: string,
+  ): Promise<void> {
+    for (const row of data) {
+      await this.prisma.requestMessage
+        .create({ data: row, select: { id: true } })
+        .catch((error: unknown) => {
+          this.logger.error(`${errorContext}: ${String(error)}`);
+        });
+    }
   }
 
   private syncTelegram(request: {

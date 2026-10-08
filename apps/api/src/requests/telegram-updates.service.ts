@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { loadEnv } from '../env';
+import { BookingService } from '../booking/booking.service';
 import { RequestsService } from './requests.service';
 import {
   answerCallbackQuery,
@@ -13,21 +14,28 @@ import {
   type TelegramUpdate,
 } from './telegram';
 
-const CALLBACK_PATTERN = /^req:([0-9a-f-]{36}):(called|taken|cancelled)$/;
+const REQUEST_CALLBACK_PATTERN = /^req:([0-9a-f-]{36}):(called|taken|cancelled)$/;
+const BOOKING_CALLBACK_PATTERN = /^bkg:([0-9a-f-]{36}):(confirmed|taken|cancelled)$/;
 
 @Injectable()
 export class TelegramUpdatesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TelegramUpdatesService.name);
   private readonly requests: RequestsService;
+  private readonly bookings: BookingService;
   private readonly prisma: PrismaService;
   private readonly config: TelegramConfig | null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private offset = 0;
   private polling = false;
 
-  constructor(requestsService: RequestsService, prisma: PrismaService) {
+  constructor(
+    requestsService: RequestsService,
+    bookingService: BookingService,
+    prismaService: PrismaService,
+  ) {
     this.requests = requestsService;
-    this.prisma = prisma;
+    this.bookings = bookingService;
+    this.prisma = prismaService;
     this.config = requestsService.telegramConfig;
   }
 
@@ -74,6 +82,25 @@ export class TelegramUpdatesService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('Создан мастер «Владелец» из TELEGRAM_CHAT_ID');
   }
 
+  private async applyCallback(
+    queryId: string,
+    data: string,
+    apply: () => Promise<unknown>,
+  ): Promise<void> {
+    if (!isTelegramEnabled(this.config)) {
+      return;
+    }
+    try {
+      await apply();
+      await answerCallbackQuery(this.config, queryId, 'Записано');
+    } catch (error: unknown) {
+      this.logger.warn(`callback ${data}: ${String(error)}`);
+      await answerCallbackQuery(this.config, queryId, 'Не получилось — обратитесь в панель').catch(
+        () => undefined,
+      );
+    }
+  }
+
   private async poll(): Promise<void> {
     if (this.polling || !isTelegramEnabled(this.config)) {
       return;
@@ -99,19 +126,19 @@ export class TelegramUpdatesService implements OnModuleInit, OnModuleDestroy {
     const query = update.callback_query;
     if (query?.data !== undefined) {
       const { data } = query;
-      const match = CALLBACK_PATTERN.exec(data);
-      if (match === null) {
+      const requestMatch = REQUEST_CALLBACK_PATTERN.exec(data);
+      if (requestMatch !== null) {
+        const [, requestId, action] = requestMatch;
+        await this.applyCallback(query.id, data, () => this.requests.updateStatus(requestId, action));
         return;
       }
-      const [, requestId, action] = match;
-      try {
-        await this.requests.updateStatus(requestId, action);
-        await answerCallbackQuery(this.config, query.id, 'Записано');
-      } catch (error: unknown) {
-        this.logger.warn(`callback ${data}: ${String(error)}`);
-        await answerCallbackQuery(this.config, query.id, 'Не получилось — заявка не найдена').catch(
-          () => undefined,
+      const bookingMatch = BOOKING_CALLBACK_PATTERN.exec(data);
+      if (bookingMatch !== null) {
+        const [, bookingId, action] = bookingMatch;
+        await this.applyCallback(query.id, data, () =>
+          this.bookings.updateStatus(bookingId, action),
         );
+        return;
       }
       return;
     }

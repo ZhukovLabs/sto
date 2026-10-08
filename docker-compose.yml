@@ -45,6 +45,7 @@ services:
       CORS_ORIGINS: http://localhost:3000,http://localhost:3001
       AUTH_SECRET: ${AUTH_SECRET:?задайте AUTH_SECRET (openssl rand -hex 32) в окружении или .env у корня}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      PAID_CHANNELS_DAILY_LIMIT: ${PAID_CHANNELS_DAILY_LIMIT:-50}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       S3_ENDPOINT: http://storage:8333
       S3_BUCKET: sto-media

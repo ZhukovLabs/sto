@@ -6,12 +6,16 @@ import { MastersModule } from './masters/masters.module';
 import { PersonalTelegramModule } from './personal-telegram';
 import { PrismaModule } from './prisma/prisma.module';
 import { RequestsModule } from './requests/requests.module';
+import { SmsModule } from './sms/sms.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     PersonalTelegramModule.register(process.env),
+    SmsModule.register(process.env),
+    NotificationsModule,
     AuthModule,
     RequestsModule,
     MastersModule,
