@@ -12,6 +12,7 @@
     "@sto/types": "workspace:*",
     "@sto/ui": "workspace:*",
     "@tanstack/react-query": "^5.104.1",
+    "@yandex/smart-captcha": "^2.9.1",
     "lucide-react": "^1.52.0",
     "next": "catalog:",
     "react": "catalog:",

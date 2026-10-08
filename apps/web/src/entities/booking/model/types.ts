@@ -1,32 +1,11 @@
-export interface BookingWorkHours {
-  from: number;
-  to: number;
-}
-
-export interface BookingDateOverride {
-  hours?: BookingWorkHours;
-  disabled?: boolean;
-  note?: string;
-}
-
-export interface BookingSettings {
-  slotStepMinutes: number;
-  horizonDays: number;
-  workDays: number[];
-  hours: BookingWorkHours;
-  overrides: Record<string, BookingDateOverride>;
-}
-
 export interface BookingDateOption {
   iso: string;
   label: string;
   weekdayLabel: string;
   disabled: boolean;
-  note?: string;
 }
 
 export interface BookingSlot {
-  iso: string;
   label: string;
   disabled: boolean;
 }
@@ -34,14 +13,19 @@ export interface BookingSlot {
 export interface CallbackRequest {
   name: string;
   phone: string;
+  /** Honeypot: заполняют только боты. */
+  company?: string;
 }
 
 export interface BookingRequest {
   name: string;
   phone: string;
   car?: string;
+  services?: string[];
+  comment?: string;
   date: string;
   time: string;
-  /** Ключ идемпотентности: будет использован при подключении реального эндпоинта самозаписи. */
   idempotencyKey?: string;
+  /** Honeypot: заполняют только боты. */
+  company?: string;
 }
