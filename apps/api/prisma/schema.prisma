@@ -40,6 +40,45 @@ model Master {
   updatedAt      DateTime        @updatedAt
 }
 
+model BookingSettings {
+  id              String   @id
+  slotStepMinutes Int      @default(60)
+  horizonDays     Int      @default(14)
+  capacity        Int      @default(1)
+  schedule        Json
+  exceptions      Json
+  updatedAt       DateTime @updatedAt
+}
+
+model Booking {
+  id             String           @id @default(uuid())
+  idempotencyKey String?          @unique
+  name           String
+  phone          String
+  car            String?
+  services      String[]      @default([])
+  comment        String?
+  scheduledAt    DateTime
+  status         String           @default("booked")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  messages       BookingMessage[]
+
+  @@index([scheduledAt])
+  @@index([status, createdAt])
+}
+
+model BookingMessage {
+  id        String   @id @default(uuid())
+  bookingId String
+  chatId    BigInt
+  messageId Int
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, messageId])
+  @@index([bookingId])
+}
+
 model RequestMessage {
   id        String  @id @default(uuid())
   requestId String
@@ -49,4 +88,10 @@ model RequestMessage {
 
   @@unique([chatId, messageId])
   @@index([requestId])
+}
+
+model NotificationSettings {
+  id           String   @id @default("singleton")
+  channelOrder String[] @default(["telegram", "viber", "sms"])
+  updatedAt    DateTime @updatedAt
 }
