@@ -215,3 +215,220 @@ export async function apiDeleteMaster(token: string, id: string): Promise<void> 
     throw await parseError(response);
   }
 }
+
+export const BOOKING_STATUSES = ['booked', 'confirmed', 'taken', 'cancelled'] as const;
+
+export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+
+export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
+  booked: 'Записан',
+  confirmed: 'Подтверждена',
+  taken: 'Заказ взят',
+  cancelled: 'Отменена',
+};
+
+export function isBookingStatus(value: unknown): value is BookingStatus {
+  return typeof value === 'string' && (BOOKING_STATUSES as readonly string[]).includes(value);
+}
+
+export interface BookingRow {
+  id: string;
+  name: string;
+  phone: string;
+  car: string | null;
+  services: string[];
+  comment: string | null;
+  scheduledAt: string;
+  status: string;
+  createdAt: string;
+}
+
+export async function apiListBookings(token: string): Promise<BookingRow[]> {
+  const response = await fetch(`${API_URL}/bookings`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as BookingRow[];
+}
+
+export async function apiCountUnconfirmedBookings(token: string): Promise<number> {
+  const response = await fetch(`${API_URL}/bookings/count-unconfirmed`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  const body = (await response.json()) as { count: number };
+  return body.count;
+}
+
+export async function apiUpdateBookingStatus(
+  token: string,
+  id: string,
+  status: BookingStatus,
+): Promise<{ status: BookingStatus }> {
+  const response = await fetch(`${API_URL}/bookings/${id}/status`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as { status: BookingStatus };
+}
+
+export interface DayWindow {
+  enabled: boolean;
+  from: string;
+  to: string;
+}
+
+export type ScheduleMap = Record<'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun', DayWindow>;
+
+export interface ExceptionWindow {
+  enabled: boolean;
+  from?: string;
+  to?: string;
+}
+
+export type ExceptionsMap = Record<string, ExceptionWindow>;
+
+export interface BookingSettings {
+  slotStepMinutes: number;
+  horizonDays: number;
+  capacity: number;
+  schedule: ScheduleMap;
+  exceptions: ExceptionsMap;
+}
+
+export async function apiGetBookingSettings(token: string): Promise<BookingSettings> {
+  const response = await fetch(`${API_URL}/booking-settings`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as BookingSettings;
+}
+
+export async function apiUpdateBookingSettings(
+  token: string,
+  patch: Partial<Omit<BookingSettings, 'schedule' | 'exceptions'>> & {
+    schedule?: ScheduleMap;
+    exceptions?: ExceptionsMap;
+  },
+): Promise<BookingSettings> {
+  const response = await fetch(`${API_URL}/booking-settings`, {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as BookingSettings;
+}
+
+// --- Уведомления ---
+
+export const NOTIFICATION_CHANNELS = ['telegram', 'viber', 'sms'] as const;
+
+export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
+
+export function isNotificationChannel(value: unknown): value is NotificationChannel {
+  return typeof value === 'string' && (NOTIFICATION_CHANNELS as readonly string[]).includes(value);
+}
+
+export const NOTIFICATION_CHANNEL_LABELS: Record<NotificationChannel, string> = {
+  telegram: 'Telegram-личка',
+  viber: 'Viber',
+  sms: 'SMS',
+};
+
+export interface NotificationSettings {
+  channelOrder: NotificationChannel[];
+}
+
+export interface SmsBalance {
+  available: boolean;
+  balance?: string;
+  error?: string;
+}
+
+export interface ChannelsPrice {
+  telegram: string | null;
+  viber: string | null;
+  sms: string | null;
+}
+
+export async function apiGetNotificationSettings(token: string): Promise<NotificationSettings> {
+  const response = await fetch(`${API_URL}/notifications/settings`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as NotificationSettings;
+}
+
+export async function apiUpdateNotificationSettings(
+  token: string,
+  patch: NotificationSettings,
+): Promise<NotificationSettings> {
+  const response = await fetch(`${API_URL}/notifications/settings`, {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as NotificationSettings;
+}
+
+export async function apiGetSmsBalance(token: string): Promise<SmsBalance> {
+  const response = await fetch(`${API_URL}/notifications/balance`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as SmsBalance;
+}
+
+export async function apiGetChannelsPrice(token: string): Promise<ChannelsPrice> {
+  const response = await fetch(`${API_URL}/notifications/channels-price`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as ChannelsPrice;
+}
+
+export interface PaidBudget {
+  limit: number;
+  used: number;
+  exhausted: boolean;
+  day: string;
+}
+
+export async function apiGetPaidBudget(token: string): Promise<PaidBudget> {
+  const response = await fetch(`${API_URL}/notifications/budget`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as PaidBudget;
+}
