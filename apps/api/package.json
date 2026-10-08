@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "create-admin": "nest build && node dist/src/scripts/create-admin.js",
+    "login:telegram": "nest build && node dist/src/scripts/login-telegram.js",
     "test": "vitest run"
   },
   "dependencies": {
@@ -23,8 +24,10 @@
     "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:",
     "@sto/types": "workspace:*",
+    "big-integer": "^1.6.52",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
+    "teleproto": "^1.229.3",
     "zod": "catalog:"
   },
   "devDependencies": {
