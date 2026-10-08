@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { AppProviders } from '@/shared/api/AppProviders';
 import { Footer } from '@/widgets/footer';
 import { Header } from '@/widgets/header';
 
@@ -17,9 +18,11 @@ export default function RootLayout({
   return (
     <html lang="ru" className="scroll-slim">
       <body className="bg-bg font-sans text-content antialiased">
-        <Header />
-        {children}
-        <Footer />
+        <AppProviders>
+          <Header />
+          {children}
+          <Footer />
+        </AppProviders>
       </body>
     </html>
   );

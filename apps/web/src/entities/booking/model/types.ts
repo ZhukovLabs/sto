@@ -42,4 +42,6 @@ export interface BookingRequest {
   car?: string;
   date: string;
   time: string;
+  /** Ключ идемпотентности: будет использован при подключении реального эндпоинта самозаписи. */
+  idempotencyKey?: string;
 }

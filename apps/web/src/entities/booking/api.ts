@@ -85,13 +85,22 @@ export function getBookingSlots(
   return slots;
 }
 
-/** TODO: заменить на POST реального API, когда бэкенд появится. */
-export async function submitCallbackRequest(request: CallbackRequest): Promise<void> {
-  await delay();
-  void request;
+export async function submitCallbackRequest(args: {
+  request: CallbackRequest;
+  idempotencyKey: string;
+}): Promise<void> {
+  const response = await fetch('/api/callback-request', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'idempotency-key': args.idempotencyKey },
+    body: JSON.stringify({ name: args.request.name, phone: args.request.phone }),
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { message?: string };
+    throw new Error(body.message ?? 'Не удалось отправить заявку');
+  }
 }
 
-/** TODO: заменить на POST реального API, когда бэкенд появится. */
+/** TODO: заменить на POST реального API, когда появится эндпоинт самозаписи. */
 export async function submitBookingRequest(request: BookingRequest): Promise<void> {
   await delay();
   void request;

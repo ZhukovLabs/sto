@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import {
   getBookingDates,
   getBookingSettings,
@@ -137,6 +138,9 @@ export function CallbackRequestDialog({ open, onClose }: { open: boolean; onClos
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
+  const callbackMutation = useMutation({ mutationFn: submitCallbackRequest });
+  const bookingMutation = useMutation({ mutationFn: submitBookingRequest });
+
   const submit = async () => {
     const nextErrors = validate(form, mode);
     setErrors(nextErrors);
@@ -146,18 +150,26 @@ export function CallbackRequestDialog({ open, onClose }: { open: boolean; onClos
     }
     if (!consent || hasErrors) return;
     setStatus('submitting');
+    const idempotencyKey = crypto.randomUUID();
+    const promise =
+      mode === 'callback'
+        ? callbackMutation.mutateAsync({
+            request: {
+              name: form.name.trim(),
+              phone: phoneDigits(form.phone),
+            },
+            idempotencyKey,
+          })
+        : bookingMutation.mutateAsync({
+            name: form.name.trim(),
+            phone: phoneDigits(form.phone),
+            car: form.car.trim() || undefined,
+            date: form.date,
+            time: form.time,
+            idempotencyKey,
+          });
     try {
-      if (mode === 'callback') {
-        await submitCallbackRequest({ name: form.name.trim(), phone: phoneDigits(form.phone) });
-      } else {
-        await submitBookingRequest({
-          name: form.name.trim(),
-          phone: phoneDigits(form.phone),
-          car: form.car.trim() || undefined,
-          date: form.date,
-          time: form.time,
-        });
-      }
+      await promise;
       setStatus('success');
     } catch {
       setStatus('error');
