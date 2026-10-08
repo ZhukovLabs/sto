@@ -11,6 +11,7 @@
     "gen:openapi": "nest build && node dist/src/gen-openapi.js",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "create-admin": "nest build && node dist/src/scripts/create-admin.js",
     "test": "vitest run"
   },
   "dependencies": {
