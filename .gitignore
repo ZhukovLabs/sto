@@ -25,3 +25,6 @@ packages/types/src/generated/
 
 # storybook build output
 storybook-static/
+
+# API: загруженные файлы (фото услуг)
+apps/api/uploads/

@@ -9,6 +9,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RequestsModule } from './requests/requests.module';
 import { SmsModule } from './sms/sms.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ServicesModule } from './services/services.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     RequestsModule,
     MastersModule,
     BookingModule,
+    ServicesModule,
+    UploadsModule,
   ],
   controllers: [AppController],
 })
