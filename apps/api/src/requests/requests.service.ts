@@ -9,6 +9,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { loadEnv } from '../env';
 import { normalizeBelarusPhone } from '../phones';
+import { NAME_PATTERN, PHONE_PATTERN, IDEMPOTENCY_KEY_PATTERN } from '../public-forms';
+import { isPrismaErrorCode } from '../prisma-errors';
 import { formatCallbackConfirmation, NotificationService } from '../notifications';
 import { publicCreateRateLimiter } from '../auth/rate-limiter';
 import {
@@ -26,10 +28,7 @@ import {
   type TelegramConfig,
 } from './telegram';
 
-const NAME_PATTERN = /^.{2,80}$/s;
-const PHONE_PATTERN = /^[0-9+()\-\s]{9,20}$/;
 const COMMENT_PATTERN = /^.{0,500}$/s;
-const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const DUPLICATE = Symbol('duplicate');
 const HOUR_MS = 60 * 60 * 1000;
 const REMINDER_INTERVAL_MS = HOUR_MS;
@@ -104,13 +103,7 @@ export class RequestsService {
         select: { id: true },
       })
       .catch(async (error: unknown): Promise<typeof DUPLICATE> => {
-        if (
-          idempotencyKey !== undefined &&
-          typeof error === 'object' &&
-          error !== null &&
-          'code' in error &&
-          error.code === 'P2002'
-        ) {
+        if (idempotencyKey !== undefined && isPrismaErrorCode(error, 'P2002')) {
           return DUPLICATE;
         }
         throw error;
@@ -181,8 +174,11 @@ export class RequestsService {
           messages: { select: { id: true, chatId: true, messageId: true } },
         },
       })
-      .catch(() => {
-        throw new NotFoundException('Заявка не найдена');
+      .catch((error: unknown) => {
+        if (isPrismaErrorCode(error, 'P2025')) {
+          throw new NotFoundException('Заявка не найдена');
+        }
+        throw error;
       });
     this.syncTelegram(request);
     return { status: request.status as RequestStatus };

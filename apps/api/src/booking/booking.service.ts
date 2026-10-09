@@ -41,11 +41,10 @@ import {
   type ExceptionsMap,
 } from './booking.settings';
 import type { Prisma } from '../generated/prisma/client';
+import { NAME_PATTERN, PHONE_PATTERN, IDEMPOTENCY_KEY_PATTERN } from '../public-forms';
+import { isPrismaErrorCode } from '../prisma-errors';
 import { formatBookingMessage, keyboardsForBooking } from './booking.telegram';
 
-const NAME_PATTERN = /^.{2,80}$/s;
-const PHONE_PATTERN = /^[0-9+()\-\s]{9,20}$/;
-const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const DUPLICATE = Symbol('duplicate');
 const ACTIVE_STATUSES: BookingStatus[] = ['booked', 'confirmed'];
 const SETTINGS_ID = 'singleton';
@@ -314,13 +313,7 @@ export class BookingService {
       })
       .catch(
         async (error: unknown): Promise<typeof DUPLICATE | { id: string; scheduledAt: Date }> => {
-          if (
-            idempotencyKey !== undefined &&
-            typeof error === 'object' &&
-            error !== null &&
-            'code' in error &&
-            error.code === 'P2002'
-          ) {
+          if (idempotencyKey !== undefined && isPrismaErrorCode(error, 'P2002')) {
             return DUPLICATE;
           }
           throw error;
@@ -459,8 +452,11 @@ export class BookingService {
           messages: { select: { id: true, chatId: true, messageId: true } },
         },
       })
-      .catch(() => {
-        throw new NotFoundException('Запись не найдена');
+      .catch((error: unknown) => {
+        if (isPrismaErrorCode(error, 'P2025')) {
+          throw new NotFoundException('Запись не найдена');
+        }
+        throw error;
       });
     this.syncTelegram(booking);
     return { status: booking.status as BookingStatus };

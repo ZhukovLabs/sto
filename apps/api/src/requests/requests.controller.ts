@@ -22,8 +22,7 @@ import {
 import type { Request } from 'express';
 import { randomUUID } from 'node:crypto';
 import { BearerTokenGuard } from '../auth/bearer-token.guard';
-import { assertCaptchaAllowed, isHoneypotFilled, registerCreation } from '../anti-abuse';
-import { verifyCaptchaToken } from '../anti-abuse/yandex-captcha';
+import { isBotSubmission, registerCreation } from '../anti-abuse';
 import { REQUEST_STATUSES, type RequestStatus } from './telegram';
 import { RequestsService } from './requests.service';
 
@@ -129,12 +128,10 @@ export class RequestsController {
     @Headers('x-captcha-token') captchaToken?: string,
   ): Promise<CreateRequestResponse> {
     const ip = request.ip ?? 'unknown';
-    if (isHoneypotFilled(body.company)) {
+    if (await isBotSubmission(body.company, captchaToken, ip)) {
       // Бот заполнил невидимое поле — молча имитируем успех, ничего не создавая.
       return { id: randomUUID(), duplicate: false };
     }
-    const captchaPassed = captchaToken ? await verifyCaptchaToken(captchaToken, ip) : false;
-    assertCaptchaAllowed(ip, captchaPassed);
     const clientKey = `request|${ip}`;
     const result = await this.requestsService.create(
       body.name,

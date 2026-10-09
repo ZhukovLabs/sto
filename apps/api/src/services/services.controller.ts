@@ -31,6 +31,14 @@ export class CreateServiceBody {
   @ApiProperty({ required: false, example: 'Синтетика' })
   description?: string;
 
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    maxLength: 2000,
+    example: 'В стоимость входит масло, фильтр и работа мастера…',
+  })
+  details?: string | null;
+
   @ApiProperty({ example: 60 })
   priceFrom!: number;
 
@@ -79,6 +87,9 @@ class ServiceViewDto {
 
   @ApiProperty({ example: 'Синтетика' })
   description!: string;
+
+  @ApiProperty({ nullable: true, maxLength: 2000 })
+  details!: string | null;
 
   @ApiProperty({ example: 60 })
   priceFrom!: number;

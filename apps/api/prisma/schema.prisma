@@ -113,6 +113,7 @@ model Service {
   group          ServiceGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   title          String
   description    String
+  details        String?
   priceFrom      Int
   priceTo        Int?
   unit           String?

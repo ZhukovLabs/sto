@@ -23,6 +23,7 @@ export const SHOWCASE_SIZE = 8;
 
 const TITLE_PATTERN = /^.{2,120}$/s;
 const DESCRIPTION_PATTERN = /^.{0,300}$/s;
+const DETAILS_PATTERN = /^.{0,2000}$/s;
 const ID_PATTERN = /^[A-Za-z0-9-]{2,60}$/;
 
 export interface ServiceView {
@@ -30,6 +31,7 @@ export interface ServiceView {
   groupId: string;
   title: string;
   description: string;
+  details: string | null;
   priceFrom: number;
   priceTo: number | null;
   unit: ServiceUnit | null;
@@ -68,6 +70,16 @@ function assertDescription(value: unknown): asserts value is string {
   if (typeof value !== 'string' || !DESCRIPTION_PATTERN.test(value)) {
     throw new BadRequestException('description — до 300 символов');
   }
+}
+
+function parseDetails(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  if (typeof value !== 'string' || !DETAILS_PATTERN.test(value)) {
+    throw new BadRequestException('details — до 2000 символов');
+  }
+  return value;
 }
 
 function assertPriceFrom(value: unknown): asserts value is number {
@@ -140,6 +152,7 @@ function toServiceView(row: {
   groupId: string;
   title: string;
   description: string;
+  details: string | null;
   priceFrom: number;
   priceTo: number | null;
   unit: string | null;
@@ -152,6 +165,7 @@ function toServiceView(row: {
     groupId: row.groupId,
     title: row.title,
     description: row.description,
+    details: row.details,
     priceFrom: row.priceFrom,
     priceTo: row.priceTo,
     unit: (row.unit as ServiceUnit | null) ?? null,
@@ -187,6 +201,7 @@ type ServiceCreate = {
   groupId: string;
   title: string;
   description: string;
+  details: string | null;
   priceFrom: number;
   priceTo: number | null;
   unit: ServiceUnit | null;
@@ -322,6 +337,7 @@ export class ServicesService {
       groupId: await this.requireGroup(body.groupId),
       title: body.title,
       description: body.description,
+      details: parseDetails(body.details),
       priceFrom: body.priceFrom,
       priceTo: parsePriceTo(body.priceTo, body.priceFrom),
       unit: parseUnit(body.unit),
@@ -357,6 +373,9 @@ export class ServicesService {
     if (body.description !== undefined) {
       assertDescription(body.description);
       patch.description = body.description;
+    }
+    if (body.details !== undefined) {
+      patch.details = parseDetails(body.details);
     }
     if (body.priceFrom !== undefined) {
       assertPriceFrom(body.priceFrom);
