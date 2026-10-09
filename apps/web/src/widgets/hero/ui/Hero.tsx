@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import { Button, Container, Heading, Text } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
-import { site } from '@/shared/config/site';
 
 export function Hero() {
   return (
@@ -11,7 +10,7 @@ export function Hero() {
           <div className="flex flex-col gap-[30px]">
             <Heading variant="display-2xl" font="display" className="uppercase">
               <span className="block overflow-hidden pb-[0.08em]">
-                <span className="block animate-line-reveal [animation-delay:80ms] motion-reduce:animate-none">
+                <span className="block animate-line-reveal [animation-delay:80ms] [word-spacing:0.18em] motion-reduce:animate-none">
                   Ремонт <span className="text-primary">без</span>
                 </span>
               </span>
@@ -23,20 +22,14 @@ export function Hero() {
             </Heading>
 
             <Text
-              variant="mono"
-              color="dim"
-              className="animate-rise [animation-delay:260ms] tracking-[0.06em] motion-reduce:animate-none"
-            >
-              {site.city.toUpperCase()} · ОТКРЫВАЕМСЯ В НОЯБРЕ
-            </Text>
-
-            <Text
               variant="body-lg"
               color="muted"
-              className="max-w-[520px] animate-rise [animation-delay:320ms] motion-reduce:animate-none"
+              className="max-w-[552px] text-balance animate-rise [animation-delay:260ms] motion-reduce:animate-none"
             >
-              Диагностика, обслуживание, мелкий и средний ремонт. Первым 20 клиентам — диагностика
-              подвески бесплатно. Окончательную цену называем до начала работ — и она не меняется.
+              <span className="text-primary">Автосервис в Гомеле</span>: замена масла,{' '}
+              <span className="text-primary">ремонт двигателя, тормозов и подвески</span>. Смету
+              считаем, прежде чем тронуть машину. Нашли то, чего нет в смете? Сначала спросим вас.
+              Молчаливых доплат не будет.
             </Text>
 
             <div className="flex animate-rise flex-col items-stretch gap-3 [animation-delay:380ms] sm:flex-row sm:flex-wrap sm:items-center sm:gap-3.5 motion-reduce:animate-none">
