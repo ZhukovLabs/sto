@@ -2,6 +2,8 @@ export { Heading } from './components/Heading/Heading';
 export type { HeadingProps, HeadingVariant, TextColor } from './components/Heading/Heading';
 export { Text } from './components/Text/Text';
 export type { TextProps, TextVariant } from './components/Text/Text';
+export { Breadcrumbs } from './components/Breadcrumbs/Breadcrumbs';
+export type { BreadcrumbItem, BreadcrumbsProps } from './components/Breadcrumbs/Breadcrumbs';
 export { Button } from './components/Button/Button';
 export type {
   ButtonProps,

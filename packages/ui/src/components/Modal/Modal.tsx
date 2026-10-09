@@ -69,6 +69,7 @@ export function Modal({
     const scrollbar = window.innerWidth - document.documentElement.clientWidth;
     const { overflow, paddingRight } = document.documentElement.style;
     document.documentElement.style.overflow = 'hidden';
+    document.documentElement.dataset.modalOpen = 'true';
     if (scrollbar > 0) {
       document.documentElement.style.paddingRight = `${scrollbar}px`;
     }
@@ -106,6 +107,7 @@ export function Modal({
       document.removeEventListener('keydown', onKeyDown);
       document.documentElement.style.overflow = overflow;
       document.documentElement.style.paddingRight = paddingRight;
+      delete document.documentElement.dataset.modalOpen;
       previouslyFocused?.focus();
     };
   }, [open, rendered]);
