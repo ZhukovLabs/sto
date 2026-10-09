@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_SCHEDULE,
+  blockedMinutesFor,
   isValidDate,
   isValidTime,
+  pruneExceptions,
   slotStarts,
+  todayIsoMinsk,
   weekdayKeyFor,
   windowForDate,
 } from './booking.settings';
@@ -79,5 +82,76 @@ describe('slotStarts', () => {
 
   it('окно короче шага — пусто', () => {
     expect(slotStarts({ from: '09:00', to: '09:30' }, 60)).toEqual([]);
+  });
+});
+
+describe('todayIsoMinsk', () => {
+  it('полночь UTC — та же дата (03:00 Минска)', () => {
+    expect(todayIsoMinsk(new Date('2026-10-08T00:00:00Z'))).toBe('2026-10-08');
+  });
+
+  it('21:00 UTC — уже следующий день Минска', () => {
+    expect(todayIsoMinsk(new Date('2026-10-08T21:00:00Z'))).toBe('2026-10-09');
+  });
+
+  it('20:59 UTC — ещё сегодняшний день', () => {
+    expect(todayIsoMinsk(new Date('2026-10-08T20:59:59Z'))).toBe('2026-10-08');
+  });
+});
+
+describe('pruneExceptions', () => {
+  it('удаляет прошедшие даты, оставляет сегодняшнюю и будущие', () => {
+    const exceptions = {
+      '2026-10-07': { enabled: false },
+      '2026-10-08': { enabled: true, from: '09:00', to: '20:00' },
+      '2026-10-09': { enabled: false },
+    };
+    expect(pruneExceptions(exceptions, '2026-10-08')).toEqual({
+      '2026-10-08': { enabled: true, from: '09:00', to: '20:00' },
+      '2026-10-09': { enabled: false },
+    });
+  });
+
+  it('пустая карта остаётся пустой', () => {
+    expect(pruneExceptions({}, '2026-10-08')).toEqual({});
+  });
+
+  it('невалидные ключи не трогает (их чистит валидация на входе)', () => {
+    const exceptions = { garbage: { enabled: false } };
+    expect(pruneExceptions(exceptions, '2026-10-08')).toEqual(exceptions);
+  });
+});
+
+describe('blockedMinutesFor', () => {
+  it('возвращает минуты заблокированных слотов включённого исключения', () => {
+    const settings = {
+      exceptions: {
+        '2026-10-12': {
+          enabled: true,
+          from: '09:00',
+          to: '20:00',
+          blockedTimes: ['10:00', '14:00'],
+        },
+      },
+    };
+    const blocked = blockedMinutesFor('2026-10-12', settings);
+    expect(blocked.size).toBe(2);
+    expect(blocked.has(10 * 60)).toBe(true);
+    expect(blocked.has(14 * 60)).toBe(true);
+    expect(blocked.has(11 * 60)).toBe(false);
+  });
+
+  it('пусто для даты без исключения, без blockedTimes и для выключенного дня', () => {
+    expect(blockedMinutesFor('2026-10-12', { exceptions: {} }).size).toBe(0);
+    expect(
+      blockedMinutesFor('2026-10-12', {
+        exceptions: { '2026-10-12': { enabled: true, from: '09:00', to: '20:00' } },
+      }).size,
+    ).toBe(0);
+    expect(
+      blockedMinutesFor('2026-10-12', {
+        exceptions: { '2026-10-12': { enabled: false, blockedTimes: ['10:00'] } },
+      }).size,
+    ).toBe(0);
   });
 });

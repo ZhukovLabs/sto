@@ -27,10 +27,13 @@ import {
   isValidDate,
   isValidTime,
   isBookingStatus,
+  blockedMinutesFor,
   minutesToTime,
+  pruneExceptions,
   slotMoment,
   slotStarts,
   timeToMinutesPublic,
+  todayIsoMinsk,
   windowForDate,
   type BookingStatus,
   type BookingSettingsData,
@@ -55,6 +58,23 @@ export interface BookingSlotView {
 export interface BookingDateView {
   date: string;
   disabled: boolean;
+}
+
+export type DayOverviewSlotStatus = 'free' | 'booked' | 'blocked';
+
+export interface DayOverviewSlotView {
+  time: string;
+  status: DayOverviewSlotStatus;
+  past: boolean;
+  bookingNames: string[];
+}
+
+export interface DayOverviewView {
+  date: string;
+  enabled: boolean;
+  from?: string;
+  to?: string;
+  slots: DayOverviewSlotView[];
 }
 
 @Injectable()
@@ -91,12 +111,22 @@ export class BookingService {
         exceptions: {},
       };
     }
+    const exceptions = row.exceptions as unknown as ExceptionsMap;
+    const pruned = pruneExceptions(exceptions, todayIsoMinsk());
+    if (Object.keys(pruned).length !== Object.keys(exceptions).length) {
+      await this.prisma.bookingSettings
+        .update({ where: { id: SETTINGS_ID }, data: { exceptions: toJsonInput(pruned) } })
+        .catch((error: unknown): null => {
+          this.logger.warn(`Не почистились прошедшие исключения: ${String(error)}`);
+          return null;
+        });
+    }
     return {
       slotStepMinutes: row.slotStepMinutes,
       horizonDays: row.horizonDays,
       capacity: row.capacity,
       schedule: row.schedule as unknown as ScheduleMap,
-      exceptions: row.exceptions as unknown as ExceptionsMap,
+      exceptions: pruned,
     };
   }
 
@@ -140,7 +170,7 @@ export class BookingService {
       data.schedule = parseSchedule(patch.schedule);
     }
     if (patch.exceptions !== undefined) {
-      data.exceptions = parseExceptions(patch.exceptions);
+      data.exceptions = pruneExceptions(parseExceptions(patch.exceptions), todayIsoMinsk());
     }
 
     const current = await this.getSettings();
@@ -174,7 +204,7 @@ export class BookingService {
   /** Даты горизонта с признаком «нет свободных слотов». */
   async availableDates(): Promise<BookingDateView[]> {
     const settings = await this.getSettings();
-    const today = minskToday();
+    const today = todayIsoMinsk();
     const dates: BookingDateView[] = [];
     for (let offset = 0; offset < settings.horizonDays; offset += 1) {
       const dateIso = addDaysIso(today, offset);
@@ -234,7 +264,7 @@ export class BookingService {
           ),
         ].slice(0, 10)
       : [];
-    const comment = cleanOptional(input.comment, 300);
+    const comment = cleanOptional(input.comment, 500);
     if (!NAME_PATTERN.test(name)) {
       throw new BadRequestException('Имя: от 2 до 80 символов');
     }
@@ -360,6 +390,55 @@ export class BookingService {
     return this.prisma.booking.count({ where: { status: 'booked' } });
   }
 
+  async dayOverview(dateInput: unknown): Promise<DayOverviewView> {
+    if (typeof dateInput !== 'string' || !isValidDate(dateInput)) {
+      throw new BadRequestException('Дата — YYYY-MM-DD');
+    }
+    const settings = await this.getSettings();
+    const window = windowForDate(dateInput, settings);
+    if (!window.enabled) {
+      return { date: dateInput, enabled: false, slots: [] };
+    }
+    const dayStart = slotMoment(dateInput, 0);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const dayBookings = await this.prisma.booking.findMany({
+      where: {
+        status: { in: ACTIVE_STATUSES },
+        scheduledAt: { gte: dayStart, lt: dayEnd },
+      },
+      select: { name: true, scheduledAt: true },
+      orderBy: { scheduledAt: 'asc' },
+    });
+    const namesBySlot = new Map<number, string[]>();
+    for (const booking of dayBookings) {
+      const minutesFromMidnight = Math.round(
+        (booking.scheduledAt.getTime() - dayStart.getTime()) / 60_000,
+      );
+      const names = namesBySlot.get(minutesFromMidnight) ?? [];
+      names.push(booking.name);
+      namesBySlot.set(minutesFromMidnight, names);
+    }
+    const blocked = blockedMinutesFor(dateInput, settings);
+    const now = Date.now();
+    const slots: DayOverviewSlotView[] = slotStarts(window, settings.slotStepMinutes).map(
+      (start) => {
+        const names = namesBySlot.get(start) ?? [];
+        const status: DayOverviewSlotStatus = blocked.has(start)
+          ? 'blocked'
+          : names.length > 0
+            ? 'booked'
+            : 'free';
+        return {
+          time: minutesToTime(start),
+          status,
+          past: slotMoment(dateInput, start).getTime() <= now,
+          bookingNames: names,
+        };
+      },
+    );
+    return { date: dateInput, enabled: true, from: window.from, to: window.to, slots };
+  }
+
   async updateStatus(id: string, status: unknown): Promise<{ status: BookingStatus }> {
     if (!isBookingStatus(status)) {
       throw new BadRequestException(`Статус: ${BOOKING_STATUSES.join(', ')}`);
@@ -413,13 +492,14 @@ export class BookingService {
       );
       occupancy.set(minutesFromMidnight, row._count.id);
     }
+    const blocked = blockedMinutesFor(dateIso, settings);
     const now = Date.now();
     return starts.map((start) => {
       const moment = slotMoment(dateIso, start);
       const used = occupancy.get(start) ?? 0;
       return {
         time: minutesToTime(start),
-        available: moment.getTime() > now && used < settings.capacity,
+        available: moment.getTime() > now && used < settings.capacity && !blocked.has(start),
       };
     });
   }
@@ -437,6 +517,9 @@ export class BookingService {
     const minutes = timeToMinutesPublic(time);
     if (!starts.includes(minutes)) {
       throw new BadRequestException('Время вне рабочих слотов');
+    }
+    if (blockedMinutesFor(dateIso, settings).has(minutes)) {
+      throw new ConflictException('Время недоступно');
     }
     const moment = slotMoment(dateIso, minutes);
     if (moment.getTime() <= Date.now()) {
@@ -547,10 +630,6 @@ function toJsonInput(value: ScheduleMap | ExceptionsMap): Prisma.InputJsonValue 
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
-function minskToday(): string {
-  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Minsk' }).format(new Date());
-}
-
 function addDaysIso(dateIso: string, days: number): string {
   const next = new Date(slotMoment(dateIso, 0).getTime() + days * 24 * 60 * 60 * 1000);
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Minsk' }).format(next);
@@ -621,7 +700,43 @@ function parseExceptions(value: unknown): ExceptionsMap {
     if (timeToMinutesPublic(from) >= timeToMinutesPublic(to)) {
       throw new BadRequestException(`Исключение ${dateIso}: from должен быть раньше to`);
     }
-    result[dateIso] = { enabled: true, from, to };
+    result[dateIso] = {
+      enabled: true,
+      from,
+      to,
+      blockedTimes: parseBlockedTimes(day as Record<string, unknown>, dateIso, from, to),
+    };
   }
   return result;
+}
+
+function parseBlockedTimes(
+  day: Record<string, unknown>,
+  dateIso: string,
+  from: string,
+  to: string,
+): string[] | undefined {
+  const raw = day.blockedTimes;
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(raw)) {
+    throw new BadRequestException(`Исключение ${dateIso}: blockedTimes — массив HH:MM`);
+  }
+  const fromMinutes = timeToMinutesPublic(from);
+  const toMinutes = timeToMinutesPublic(to);
+  const unique = new Set<string>();
+  for (const item of raw) {
+    if (typeof item !== 'string' || !isValidTime(item)) {
+      throw new BadRequestException(`Исключение ${dateIso}: blockedTimes — HH:MM`);
+    }
+    const minutes = timeToMinutesPublic(item);
+    if (minutes < fromMinutes || minutes >= toMinutes) {
+      throw new BadRequestException(
+        `Исключение ${dateIso}: блокировка ${item} вне окна ${from}–${to}`,
+      );
+    }
+    unique.add(item);
+  }
+  return [...unique].sort((a, b) => timeToMinutesPublic(a) - timeToMinutesPublic(b));
 }

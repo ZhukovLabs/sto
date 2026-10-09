@@ -48,7 +48,7 @@ class CreateBookingBody {
   @ApiProperty({ example: ['Диагностика подвески', 'Замена масла'], required: false })
   services?: string[];
 
-  @ApiProperty({ example: 'Стучит спереди на кочках', required: false })
+  @ApiProperty({ example: 'Стучит спереди на кочках', maxLength: 500, required: false })
   comment?: string;
 
   @ApiProperty({ example: '2026-11-12', description: 'YYYY-MM-DD' })
@@ -129,6 +129,42 @@ class CountUnconfirmedResponse {
   count!: number;
 }
 
+class DayOverviewSlot {
+  @ApiProperty({ example: '14:00' })
+  time!: string;
+
+  @ApiProperty({ enum: ['free', 'booked', 'blocked'] })
+  status!: string;
+
+  @ApiProperty({ example: false, description: 'true — слот уже прошёл' })
+  past!: boolean;
+
+  @ApiProperty({ example: ['Иван'], description: 'Имена клиентов с активной записью на слот' })
+  bookingNames!: string[];
+}
+
+class DayOverviewResponse {
+  @ApiProperty({ example: '2026-11-12' })
+  date!: string;
+
+  @ApiProperty({ example: true, description: 'false — день закрыт (выходной)' })
+  enabled!: boolean;
+
+  @ApiProperty({ example: '09:00', required: false })
+  from?: string;
+
+  @ApiProperty({ example: '20:00', required: false })
+  to?: string;
+
+  @ApiProperty({ type: [DayOverviewSlot] })
+  slots!: DayOverviewSlot[];
+}
+
+class DayOverviewQuery {
+  @ApiProperty({ example: '2026-11-12', description: 'YYYY-MM-DD' })
+  date!: string;
+}
+
 class UpdateStatusResponse {
   @ApiProperty({ enum: [...BOOKING_STATUSES] })
   status!: BookingStatus;
@@ -197,6 +233,15 @@ export class BookingController {
   @ApiOperation({ summary: 'Список записей (по убыванию даты создания)' })
   async list(@Query() query: ListBookingsQuery): Promise<BookingResponse[]> {
     return this.bookingService.list(query.status);
+  }
+
+  @Get('bookings/day-overview')
+  @UseGuards(BearerTokenGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Обзор дня для настройки блокировок: слоты с занятостью' })
+  @ApiResponse({ status: 200, type: DayOverviewResponse })
+  async dayOverview(@Query() query: DayOverviewQuery): Promise<DayOverviewResponse> {
+    return this.bookingService.dayOverview(query.date);
   }
 
   @Get('bookings/count-unconfirmed')

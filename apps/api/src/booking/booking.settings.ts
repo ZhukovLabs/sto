@@ -32,6 +32,8 @@ export interface ExceptionWindow {
   enabled: boolean;
   from?: string;
   to?: string;
+  /** Заблокированные вручную слоты HH:MM внутри рабочего окна (только для включённых дней). */
+  blockedTimes?: string[];
 }
 
 /** Ключ — дата в формате YYYY-MM-DD (минского времени). */
@@ -141,4 +143,33 @@ export function timeToMinutesPublic(value: string): number {
 /** Момент слота: дата YYYY-MM-DD + минуты от полуночи минского времени. */
 export function slotMoment(dateIso: string, minutesFromMidnight: number): Date {
   return new Date(minskDayStart(dateIso).getTime() + minutesFromMidnight * 60 * 1000);
+}
+
+/** Текущая дата YYYY-MM-DD по минскому времени. */
+export function todayIsoMinsk(now: Date = new Date()): string {
+  return new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/** Убирает исключения по прошедшим датам (< todayIso по Минску); сегодняшний день остаётся. */
+export function pruneExceptions(exceptions: ExceptionsMap, todayIso: string): ExceptionsMap {
+  const pruned: ExceptionsMap = {};
+  for (const [date, window] of Object.entries(exceptions)) {
+    if (isValidDate(date) && date < todayIso) {
+      continue;
+    }
+    pruned[date] = window;
+  }
+  return pruned;
+}
+
+/** Заблокированные вручную слоты даты в минутах от полуночи. */
+export function blockedMinutesFor(
+  dateIso: string,
+  settings: Pick<BookingSettingsData, 'exceptions'>,
+): Set<number> {
+  const exception = settings.exceptions[dateIso];
+  if (exception?.enabled !== true || exception.blockedTimes === undefined) {
+    return new Set();
+  }
+  return new Set(exception.blockedTimes.map(timeToMinutes));
 }
