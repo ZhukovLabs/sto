@@ -1,5 +1,5 @@
-import { Wrench } from 'lucide-react';
 import { site } from '@/shared/config/site';
+import { LogoMark } from '@/shared/brand/LogoMark';
 import { Container, Text } from '@/shared/ui';
 
 export function Footer() {
@@ -14,9 +14,7 @@ export function Footer() {
             className="flex items-center gap-2.5"
             aria-label={`${site.name} — на главную`}
           >
-            <span className="flex size-7.5 shrink-0 items-center justify-center rounded-lg bg-primary">
-              <Wrench aria-hidden="true" className="size-3.5 text-primary-ink" strokeWidth={2} />
-            </span>
+            <LogoMark className="size-8.5 shrink-0" />
             <span className="flex min-w-0 flex-col">
               <span className="font-display text-body font-bold uppercase tracking-[0.04em] text-content">
                 ПроМакс

@@ -3,6 +3,7 @@ import './globals.css';
 import { AppProviders } from '@/shared/api/AppProviders';
 import { Footer } from '@/widgets/footer';
 import { Header } from '@/widgets/header';
+import { MobileActionBar } from '@/widgets/mobile-action-bar';
 
 export const metadata: Metadata = {
   title: 'СТО «ПроМакс» — автосервис в Гомеле',
@@ -22,6 +23,7 @@ export default function RootLayout({
           <Header />
           {children}
           <Footer />
+          <MobileActionBar />
         </AppProviders>
       </body>
     </html>

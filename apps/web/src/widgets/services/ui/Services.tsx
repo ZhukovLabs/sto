@@ -5,8 +5,6 @@ import { BynSign, Container, Heading } from '@/shared/ui';
 import { getServiceCatalog, PriceByn, ServiceCard } from '@/entities/service';
 import type { CatalogGroup } from '@/entities/service';
 
-const BYN_CLASS = 'inline h-[0.76em] w-auto -translate-y-[0.08em]';
-
 interface ShowcaseItem {
   group: CatalogGroup;
   index: number;
@@ -81,7 +79,14 @@ export async function Services() {
 
 function ShowcaseCard({ item, className }: { item: ShowcaseItem; className?: string }) {
   const service = item.group.services[item.index];
-  return <ServiceCard service={service} group={item.group} className={className} />;
+  return (
+    <ServiceCard
+      service={service}
+      group={item.group}
+      className={className}
+      href={`/services/${item.group.id}/${service.id}`}
+    />
+  );
 }
 
 function SlabLink() {
@@ -103,7 +108,7 @@ function FeaturedCard({ item, className }: { item: ShowcaseItem; className?: str
   const photo = featured.photo ?? item.group.photo;
   return (
     <a
-      href="#"
+      href={`/services/${item.group.id}/${featured.id}`}
       className={`group relative flex flex-col justify-end gap-1.5 overflow-hidden rounded-lg border-[1.5px] border-primary bg-panel-2 p-5 text-content transition-colors duration-300 hover:border-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg ${className ?? ''}`}
     >
       {photo ? (
@@ -122,7 +127,7 @@ function FeaturedCard({ item, className }: { item: ShowcaseItem; className?: str
         </>
       ) : null}
       <span className="relative inline-flex w-fit items-center gap-1.5 rounded-sm bg-primary px-2 py-1 font-mono text-caption font-bold uppercase tracking-normal text-primary-ink max-sm:self-start sm:absolute sm:top-4 sm:right-4">
-        Первым 20 — 0 <BynSign className={BYN_CLASS} aria-label="белорусских рублей" />
+        Первым 20 — 0<BynSign aria-label="белорусских рублей" />
       </span>
       <span className="relative text-xl font-bold leading-[1.2]">{featured.title}</span>
       <span className="relative text-sm leading-normal text-content-muted">

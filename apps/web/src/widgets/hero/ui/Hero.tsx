@@ -40,7 +40,7 @@ export function Hero() {
             </Text>
 
             <div className="flex animate-rise flex-col items-stretch gap-3 [animation-delay:380ms] sm:flex-row sm:flex-wrap sm:items-center sm:gap-3.5 motion-reduce:animate-none">
-              <CallbackButton size="lg" pill className="sm:min-w-[220px]">
+              <CallbackButton id="hero-cta" size="lg" pill className="sm:min-w-[220px]">
                 Записаться
               </CallbackButton>
               <Button variant="outline" size="lg" pill href="#services">
