@@ -12,6 +12,7 @@ type Story = StoryObj<typeof Checkbox>;
 
 function CheckboxPlayground() {
   const [checked, setChecked] = useState(false);
+  const [withError, setWithError] = useState(false);
   return (
     <div className="flex max-w-md flex-col gap-5">
       <Checkbox
@@ -21,7 +22,20 @@ function CheckboxPlayground() {
       />
       <Checkbox checked={false} onChange={() => {}} label="Не отмечен" />
       <Checkbox checked onChange={() => {}} label="Отмечен" />
-      <Checkbox checked={false} onChange={() => {}} label="Ошибка" error="Нужно согласие" />
+      <Checkbox indeterminate onChange={() => {}} label="Частичный выбор" />
+      <Checkbox
+        checked={withError}
+        onChange={setWithError}
+        label={
+          <span>
+            Даю согласие на обработку персональных данных для связи со мной и записи на сервис в
+            соответствии с Политикой конфиденциальности
+          </span>
+        }
+        description="Отметьте, чтобы отправить заявку"
+        error={withError ? undefined : 'Отметьте согласие, чтобы отправить заявку'}
+      />
+      <Checkbox checked={false} onChange={() => {}} disabled label="Недоступен" />
     </div>
   );
 }

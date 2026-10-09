@@ -9,8 +9,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@sto/types": "workspace:*",
     "@sto/ui": "workspace:*",
+    "@tanstack/react-query": "^5.104.1",
+    "lucide-react": "^1.52.0",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

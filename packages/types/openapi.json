@@ -21,6 +21,1169 @@
           "App"
         ]
       }
+    },
+    "/notifications/settings": {
+      "get": {
+        "operationId": "NotificationsController_getSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Настройки каналов подтверждений",
+        "tags": [
+          "notifications"
+        ]
+      },
+      "put": {
+        "operationId": "NotificationsController_updateSettings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationSettingsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Обновить порядок каналов подтверждений",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/notifications/balance": {
+      "get": {
+        "operationId": "NotificationsController_getBalance",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Баланс SMS-шлюза",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/notifications/budget": {
+      "get": {
+        "operationId": "NotificationsController_getBudget",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Дневной бюджет платных каналов (Viber + SMS)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/notifications/channels-price": {
+      "get": {
+        "operationId": "NotificationsController_getChannelsPrice",
+        "parameters": [
+          {
+            "name": "phone",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Цена одного подтверждения по каналам, без отправки",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверные данные или лимит попыток"
+          }
+        },
+        "summary": "Вход по email и паролю",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Текущий пользователь по токену сессии",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Продлить сессию до полной длительности",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/requests": {
+      "post": {
+        "operationId": "RequestsController_create",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-captcha-token",
+            "required": false,
+            "in": "header",
+            "description": "Токен Яндекс SmartCaptcha — нужен при повторных отправках",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Ключ идемпотентности (8–64 символа)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRequestResponse"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Требуется прохождение капчи"
+          },
+          "429": {
+            "description": "Слишком много заявок с одного адреса"
+          }
+        },
+        "summary": "Создать заявку «Перезвоните мне» (публичный, идемпотентен с Idempotency-Key)",
+        "tags": [
+          "requests"
+        ]
+      },
+      "get": {
+        "operationId": "RequestsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "new",
+                "called",
+                "taken",
+                "cancelled"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Список заявок (по убыванию даты)",
+        "tags": [
+          "requests"
+        ]
+      }
+    },
+    "/requests/count-new": {
+      "get": {
+        "operationId": "RequestsController_countNew",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Количество новых заявок",
+        "tags": [
+          "requests"
+        ]
+      }
+    },
+    "/requests/{id}/status": {
+      "patch": {
+        "operationId": "RequestsController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRequestStatusBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Изменить статус заявки и синхронизировать сообщение в Telegram",
+        "tags": [
+          "requests"
+        ]
+      }
+    },
+    "/bookings/dates": {
+      "get": {
+        "operationId": "BookingController_dates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DateView"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Даты горизонта записи с признаком занятости (публичный)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/slots": {
+      "get": {
+        "operationId": "BookingController_slots",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SlotView"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Слоты дня со свободностью (публичный)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings": {
+      "post": {
+        "operationId": "BookingController_create",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-captcha-token",
+            "required": false,
+            "in": "header",
+            "description": "Токен Яндекс SmartCaptcha — нужен при повторных отправках",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Ключ идемпотентности (8–64 символа)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBookingResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Слот занят или время прошло"
+          },
+          "428": {
+            "description": "Требуется прохождение капчи"
+          },
+          "429": {
+            "description": "Слишком много попыток с одного адреса"
+          }
+        },
+        "summary": "Создать запись «Сам запишусь» (публичный, идемпотентен)",
+        "tags": [
+          "bookings"
+        ]
+      },
+      "get": {
+        "operationId": "BookingController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "booked",
+                "confirmed",
+                "taken",
+                "cancelled"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Список записей (по убыванию даты создания)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/day-overview": {
+      "get": {
+        "operationId": "BookingController_dayOverview",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "description": "YYYY-MM-DD",
+            "schema": {
+              "example": "2026-11-12",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayOverviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Обзор дня для настройки блокировок: слоты с занятостью",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/count-unconfirmed": {
+      "get": {
+        "operationId": "BookingController_countUnconfirmed",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Количество записей, ждущих подтверждения",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{id}/status": {
+      "patch": {
+        "operationId": "BookingController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBookingStatusBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Изменить статус записи и синхронизировать Telegram",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/booking-settings": {
+      "get": {
+        "operationId": "BookingController_getSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Настройки записи",
+        "tags": [
+          "bookings"
+        ]
+      },
+      "put": {
+        "operationId": "BookingController_updateSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Обновить настройки записи (частичное)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/masters": {
+      "get": {
+        "operationId": "MastersController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Список мастеров",
+        "tags": [
+          "masters"
+        ]
+      },
+      "post": {
+        "operationId": "MastersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMasterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Некорректное имя или chat_id"
+          },
+          "409": {
+            "description": "Мастер с таким chat_id уже добавлен"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Добавить мастера (chat_id — из ответа бота на /start)",
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/masters/{id}": {
+      "patch": {
+        "operationId": "MastersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMasterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "404": {
+            "description": "Мастер не найден"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Переименовать или включить/выключить получение заявок",
+        "tags": [
+          "masters"
+        ]
+      },
+      "delete": {
+        "operationId": "MastersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Мастер не найден"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Удалить мастера",
+        "tags": [
+          "masters"
+        ]
+      }
+    },
+    "/services/catalog": {
+      "get": {
+        "operationId": "ServicesController_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Публичный каталог (только активные)",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/services": {
+      "get": {
+        "operationId": "ServicesController_adminCatalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Полный каталог для админки",
+        "tags": [
+          "services"
+        ]
+      },
+      "post": {
+        "operationId": "ServicesController_createService",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceViewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Создать услугу",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/services/groups": {
+      "post": {
+        "operationId": "ServicesController_createGroup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceGroupBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceGroupViewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Создать группу",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/services/groups/order": {
+      "put": {
+        "operationId": "ServicesController_reorderGroups",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Порядок групп",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/services/groups/{id}": {
+      "patch": {
+        "operationId": "ServicesController_updateGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceGroupBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceGroupViewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Изменить группу",
+        "tags": [
+          "services"
+        ]
+      },
+      "delete": {
+        "operationId": "ServicesController_deleteGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Удалить группу с услугами",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/services/order": {
+      "put": {
+        "operationId": "ServicesController_reorderServices",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServicesOrderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Порядок услуг в группе",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/services/{id}": {
+      "patch": {
+        "operationId": "ServicesController_updateService",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceViewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Изменить услугу",
+        "tags": [
+          "services"
+        ]
+      },
+      "delete": {
+        "operationId": "ServicesController_deleteService",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Удалить услугу",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/services/showcase": {
+      "put": {
+        "operationId": "ServicesController_updateShowcase",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShowcaseBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ShowcaseSlotViewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Задать витрину (ровно 8)",
+        "tags": [
+          "services"
+        ]
+      }
+    },
+    "/uploads": {
+      "post": {
+        "operationId": "UploadsController_upload",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Загрузить фото (до 5 МБ, webp/jpeg/png)",
+        "tags": [
+          "uploads"
+        ]
+      }
     }
   },
   "info": {
@@ -55,6 +1218,787 @@
         "required": [
           "status",
           "uptime"
+        ]
+      },
+      "NotificationSettingsBody": {
+        "type": "object",
+        "properties": {
+          "channelOrder": {
+            "example": [
+              "telegram",
+              "viber",
+              "sms"
+            ],
+            "description": "Каналы подтверждений в порядке попытки доставки",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "channelOrder"
+        ]
+      },
+      "LoginRequestDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "admin@promaks.by"
+          },
+          "password": {
+            "type": "string",
+            "example": "пароль"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Токен сессии для заголовка Authorization: Bearer"
+          },
+          "expiresAt": {
+            "type": "number",
+            "description": "Токен истекает в Unix-времени, секунды"
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "example": "admin@promaks.by"
+          },
+          "name": {
+            "type": "string",
+            "example": "Максим"
+          },
+          "role": {
+            "type": "string",
+            "example": "admin"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "role"
+        ]
+      },
+      "RefreshResponseDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Новый токен сессии"
+          },
+          "expiresAt": {
+            "type": "number",
+            "description": "Новый срок истечения, Unix-время в секундах"
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt"
+        ]
+      },
+      "CreateRequestBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Иван",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "phone": {
+            "type": "string",
+            "example": "+375 29 123-45-67"
+          },
+          "comment": {
+            "type": "string",
+            "example": "Машину тянет вправо, звоните после 18:00",
+            "maxLength": 500
+          },
+          "company": {
+            "type": "string",
+            "description": "Honeypot-поле: заполнено только ботами"
+          }
+        },
+        "required": [
+          "name",
+          "phone"
+        ]
+      },
+      "CreateRequestResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "example": false,
+            "description": "true — заявка уже существовала (повторный Idempotency-Key)"
+          }
+        },
+        "required": [
+          "id",
+          "duplicate"
+        ]
+      },
+      "UpdateRequestStatusBody": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "called",
+              "taken",
+              "cancelled"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "DateView": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "example": "2026-11-12"
+          },
+          "disabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "true — свободных слотов нет"
+          }
+        },
+        "required": [
+          "date",
+          "disabled"
+        ]
+      },
+      "SlotView": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "string",
+            "example": "14:00"
+          },
+          "available": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "time",
+          "available"
+        ]
+      },
+      "CreateBookingBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Иван",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "phone": {
+            "type": "string",
+            "example": "+375 29 123-45-67"
+          },
+          "company": {
+            "type": "string",
+            "description": "Honeypot-поле: заполнено только ботами"
+          },
+          "car": {
+            "type": "string",
+            "example": "Toyota Corolla 2015"
+          },
+          "services": {
+            "example": [
+              "Диагностика подвески",
+              "Замена масла"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "comment": {
+            "type": "string",
+            "example": "Стучит спереди на кочках",
+            "maxLength": 500
+          },
+          "date": {
+            "type": "string",
+            "example": "2026-11-12",
+            "description": "YYYY-MM-DD"
+          },
+          "time": {
+            "type": "string",
+            "example": "14:00",
+            "description": "HH:MM"
+          }
+        },
+        "required": [
+          "name",
+          "phone",
+          "date",
+          "time"
+        ]
+      },
+      "CreateBookingResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "example": false,
+            "description": "true — запись уже существовала (повторный Idempotency-Key)"
+          }
+        },
+        "required": [
+          "id",
+          "duplicate"
+        ]
+      },
+      "DayOverviewSlot": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "string",
+            "example": "14:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "free",
+              "booked",
+              "blocked"
+            ]
+          },
+          "past": {
+            "type": "boolean",
+            "example": false,
+            "description": "true — слот уже прошёл"
+          },
+          "bookingNames": {
+            "example": [
+              "Иван"
+            ],
+            "description": "Имена клиентов с активной записью на слот",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "time",
+          "status",
+          "past",
+          "bookingNames"
+        ]
+      },
+      "DayOverviewResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "example": "2026-11-12"
+          },
+          "enabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "false — день закрыт (выходной)"
+          },
+          "from": {
+            "type": "string",
+            "example": "09:00"
+          },
+          "to": {
+            "type": "string",
+            "example": "20:00"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayOverviewSlot"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "enabled",
+          "slots"
+        ]
+      },
+      "UpdateBookingStatusBody": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "booked",
+              "confirmed",
+              "taken",
+              "cancelled"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "CreateMasterDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Имя мастера",
+            "example": "Максим"
+          },
+          "telegramChatId": {
+            "type": "string",
+            "description": "chat_id из /start у бота",
+            "example": "1160368886"
+          }
+        },
+        "required": [
+          "name",
+          "telegramChatId"
+        ]
+      },
+      "UpdateMasterDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Имя мастера",
+            "example": "Максим"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Получать заявки",
+            "example": true
+          }
+        }
+      },
+      "ServiceViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "zamena-masla"
+          },
+          "groupId": {
+            "type": "string",
+            "example": "shinomontazh"
+          },
+          "title": {
+            "type": "string",
+            "example": "Замена масла"
+          },
+          "description": {
+            "type": "string",
+            "example": "Синтетика"
+          },
+          "details": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "priceFrom": {
+            "type": "number",
+            "example": 60
+          },
+          "priceTo": {
+            "type": "object",
+            "nullable": true,
+            "example": 120
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "wheel",
+              "pcs",
+              "season"
+            ]
+          },
+          "photo": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/oil.webp"
+          },
+          "position": {
+            "type": "number",
+            "example": 0
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "id",
+          "groupId",
+          "title",
+          "description",
+          "details",
+          "priceFrom",
+          "priceTo",
+          "unit",
+          "photo",
+          "position",
+          "isActive"
+        ]
+      },
+      "ServiceGroupViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "shinomontazh"
+          },
+          "title": {
+            "type": "string",
+            "example": "Шиномонтаж"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "scan",
+              "wrench",
+              "disc",
+              "cog",
+              "gauge",
+              "circle",
+              "snowflake"
+            ]
+          },
+          "photo": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/tyres.webp"
+          },
+          "position": {
+            "type": "number",
+            "example": 0
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceViewDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "icon",
+          "photo",
+          "position",
+          "isActive",
+          "services"
+        ]
+      },
+      "ShowcaseSlotViewDto": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string",
+            "example": "zamena-masla"
+          },
+          "position": {
+            "type": "number",
+            "example": 0
+          }
+        },
+        "required": [
+          "serviceId",
+          "position"
+        ]
+      },
+      "CatalogResponseDto": {
+        "type": "object",
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceGroupViewDto"
+            }
+          },
+          "showcase": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShowcaseSlotViewDto"
+            }
+          }
+        },
+        "required": [
+          "groups",
+          "showcase"
+        ]
+      },
+      "CreateServiceGroupBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Шиномонтаж"
+          },
+          "icon": {
+            "type": "string",
+            "enum": [
+              "scan",
+              "wrench",
+              "disc",
+              "cog",
+              "gauge",
+              "circle",
+              "snowflake"
+            ],
+            "nullable": true
+          },
+          "photo": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/tyres.webp"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "OrderBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "UpdateServiceGroupBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Шиномонтаж"
+          },
+          "icon": {
+            "type": "string",
+            "enum": [
+              "scan",
+              "wrench",
+              "disc",
+              "cog",
+              "gauge",
+              "circle",
+              "snowflake"
+            ],
+            "nullable": true
+          },
+          "photo": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/tyres.webp"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "CreateServiceBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Замена масла"
+          },
+          "description": {
+            "type": "string",
+            "example": "Синтетика"
+          },
+          "details": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 2000,
+            "example": "В стоимость входит масло, фильтр и работа мастера…"
+          },
+          "priceFrom": {
+            "type": "number",
+            "example": 60
+          },
+          "priceTo": {
+            "type": "object",
+            "nullable": true,
+            "example": 120
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "wheel",
+              "pcs",
+              "season"
+            ],
+            "nullable": true
+          },
+          "photo": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/oil.webp"
+          },
+          "groupId": {
+            "type": "string",
+            "example": "shinomontazh"
+          }
+        },
+        "required": [
+          "title",
+          "priceFrom",
+          "groupId"
+        ]
+      },
+      "ServicesOrderBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "groupId": {
+            "type": "string",
+            "example": "shinomontazh"
+          }
+        },
+        "required": [
+          "ids",
+          "groupId"
+        ]
+      },
+      "UpdateServiceBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Замена масла"
+          },
+          "description": {
+            "type": "string",
+            "example": "Синтетика"
+          },
+          "details": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 2000,
+            "example": "В стоимость входит масло, фильтр и работа мастера…"
+          },
+          "priceFrom": {
+            "type": "number",
+            "example": 60
+          },
+          "priceTo": {
+            "type": "object",
+            "nullable": true,
+            "example": 120
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "wheel",
+              "pcs",
+              "season"
+            ],
+            "nullable": true
+          },
+          "photo": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/oil.webp"
+          },
+          "groupId": {
+            "type": "string",
+            "example": "shinomontazh"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "title",
+          "priceFrom",
+          "groupId"
+        ]
+      },
+      "ShowcaseBody": {
+        "type": "object",
+        "properties": {
+          "serviceIds": {
+            "minItems": 8,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "serviceIds"
+        ]
+      },
+      "UploadResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "example": "/uploads/8f0c1a2b-4d3e-4f5a-9b6c-1d2e3f4a5b6c.webp"
+          }
+        },
+        "required": [
+          "url"
         ]
       }
     }

@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-export type ModalSize = 'sm' | 'md' | 'lg';
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 export interface ModalProps {
   open: boolean;
@@ -12,6 +12,8 @@ export interface ModalProps {
   description?: string;
   size?: ModalSize;
   footer?: ReactNode;
+  /** Дополнительно к панели: например, фиксированная высота (sm:h-[…]). */
+  className?: string;
   children: ReactNode;
 }
 
@@ -19,10 +21,14 @@ const sizeClass: Record<ModalSize, string> = {
   sm: 'max-w-md',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
+  xl: 'max-w-3xl',
 };
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Совпадает с длительностью --animate-sheet-out / --animate-modal-out / --animate-fade-out. */
+const CLOSE_ANIMATION_MS = 250;
 
 export function Modal({
   open,
@@ -31,24 +37,39 @@ export function Modal({
   description,
   size = 'md',
   footer,
+  className,
   children,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
   const [mounted, setMounted] = useState(false);
+  const [rendered, setRendered] = useState(false);
+  const [closing, setClosing] = useState(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (!open) return;
+    if (open) {
+      setRendered(true);
+      setClosing(false);
+      return;
+    }
+    setClosing(true);
+    const timer = setTimeout(() => setRendered(false), CLOSE_ANIMATION_MS);
+    return () => clearTimeout(timer);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !rendered) return;
     const panel = panelRef.current;
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const scrollbar = window.innerWidth - document.documentElement.clientWidth;
     const { overflow, paddingRight } = document.documentElement.style;
     document.documentElement.style.overflow = 'hidden';
+    document.documentElement.dataset.modalOpen = 'true';
     if (scrollbar > 0) {
       document.documentElement.style.paddingRight = `${scrollbar}px`;
     }
@@ -86,18 +107,19 @@ export function Modal({
       document.removeEventListener('keydown', onKeyDown);
       document.documentElement.style.overflow = overflow;
       document.documentElement.style.paddingRight = paddingRight;
+      delete document.documentElement.dataset.modalOpen;
       previouslyFocused?.focus();
     };
-  }, [open]);
+  }, [open, rendered]);
 
-  if (!open || !mounted) return null;
+  if (!rendered || !mounted) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-(--z-modal) flex items-end justify-center sm:items-center sm:p-6">
       <div
         aria-hidden="true"
         onClick={onClose}
-        className="absolute inset-0 animate-fade-in bg-(--color-overlay)"
+        className={`absolute inset-0 bg-(--color-overlay) ${closing ? 'animate-fade-out' : 'animate-fade-in'}`}
       />
       <div
         ref={panelRef}
@@ -106,7 +128,11 @@ export function Modal({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
-        className={`relative flex max-h-[92dvh] w-full animate-modal-in flex-col overflow-hidden rounded-t-xl border border-border bg-panel-2 sm:rounded-xl ${sizeClass[size]}`}
+        className={`relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-xl border border-border bg-panel-2 sm:rounded-xl ${
+          closing
+            ? 'max-sm:animate-sheet-out sm:animate-modal-out'
+            : 'max-sm:animate-sheet-in sm:animate-modal-in'
+        } ${sizeClass[size]} ${className ?? ''}`}
       >
         <div
           aria-hidden="true"
@@ -130,7 +156,7 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label="Закрыть"
-            className="-mt-1 -mr-1 flex size-10 shrink-0 items-center justify-center rounded-md text-content-dim transition-colors hover:bg-panel hover:text-content motion-reduce:transition-none"
+            className="-mt-[7px] -mr-1 flex size-10 shrink-0 items-center justify-center rounded-md text-content-dim transition-colors hover:bg-panel hover:text-content motion-reduce:transition-none"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
@@ -142,7 +168,7 @@ export function Modal({
             </svg>
           </button>
         </div>
-        <div className="scroll-slim min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-7 sm:px-7">
+        <div className="scroll-slim flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pt-3 pb-7 sm:px-7 sm:pt-5">
           {children}
         </div>
         {footer ? (

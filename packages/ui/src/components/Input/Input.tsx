@@ -12,8 +12,8 @@ export type { FieldSize };
 
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
-  helper?: string;
-  error?: string;
+  helper?: ReactNode;
+  error?: ReactNode;
   size?: FieldSize;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;

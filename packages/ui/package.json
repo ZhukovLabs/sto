@@ -28,5 +28,8 @@
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "^7.0.0"
+  },
+  "dependencies": {
+    "@floating-ui/dom": "^1.8.0"
   }
 }

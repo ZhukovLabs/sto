@@ -1,0 +1,23 @@
+import { Heading, Text } from '@sto/ui';
+import { requireUser } from '@/lib/auth';
+import { NotificationSettingsForm } from '@/features/notifications';
+
+export const metadata = { title: 'Уведомления — ПроМакс' };
+
+export default async function NotificationsPage() {
+  await requireUser();
+
+  return (
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-10 sm:px-6">
+      <div className="flex flex-col gap-1.5">
+        <Heading variant="section" font="display" className="uppercase">
+          Уведомления
+        </Heading>
+        <Text variant="mono" color="dim" className="tracking-[0.08em]">
+          {'// БАЛАНС SMS И КАНАЛЫ ПОДТВЕРЖДЕНИЙ КЛИЕНТАМ'}
+        </Text>
+      </div>
+      <NotificationSettingsForm />
+    </main>
+  );
+}

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import 'reflect-metadata';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -16,4 +17,11 @@ async function generate(): Promise<void> {
   await app.close();
 }
 
-void generate();
+void generate()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((error: unknown) => {
+    console.error(error);
+    process.exit(1);
+  });

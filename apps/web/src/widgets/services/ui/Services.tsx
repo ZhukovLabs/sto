@@ -1,56 +1,40 @@
 import Image from 'next/image';
-import type { LucideIcon } from 'lucide-react';
-import {
-  ArrowRight,
-  CircleDashed,
-  Cog,
-  Disc,
-  Droplets,
-  Gauge,
-  Link as LinkIcon,
-  ScanLine,
-  Snowflake,
-} from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { BynSign, Container, Heading } from '@/shared/ui';
-import { getServices } from '@/entities/service';
-import type { Service } from '@/entities/service';
+import { getServiceCatalog, PriceByn, ServiceCard } from '@/entities/service';
+import type { CatalogGroup } from '@/entities/service';
 
-const ICONS: Record<string, LucideIcon> = {
-  diagnostics: ScanLine,
-  brakes: Disc,
-  oil: Droplets,
-  timing: Cog,
-  clutch: LinkIcon,
-  alignment: Gauge,
-  tyres: CircleDashed,
-  ac: Snowflake,
-};
+interface ShowcaseItem {
+  group: CatalogGroup;
+  index: number;
+}
 
-const BYN_CLASS = 'inline h-[0.76em] w-auto -translate-y-[0.08em]';
-
-const UNIT_SHORT: Record<string, string> = {
-  'за колесо': '/кол',
-};
-
-const EXCLUDED_FROM_GRID = new Set(['suspension']);
-
-function PriceByn({ service, className }: { service: Service; className?: string }) {
-  const unitShort = service.unit ? (UNIT_SHORT[service.unit] ?? service.unit) : null;
-  return (
-    <span className={className}>
-      от {service.priceFrom} <BynSign className={BYN_CLASS} aria-label="белорусских рублей" />
-      {unitShort ? <span className="text-[0.85em] text-content-dim"> {unitShort}</span> : null}
-    </span>
-  );
+function resolveShowcase(data: Awaited<ReturnType<typeof getServiceCatalog>>): ShowcaseItem[] {
+  if (data === null) {
+    return [];
+  }
+  const items: ShowcaseItem[] = [];
+  for (const slot of data.showcase) {
+    for (const group of data.groups) {
+      const index = group.services.findIndex((service) => service.id === slot.serviceId);
+      if (index >= 0) {
+        items.push({ group, index });
+        break;
+      }
+    }
+  }
+  return items;
 }
 
 export async function Services() {
-  const services = await getServices();
-  const featured = services.find((s) => s.id === 'diagnostics') ?? services[0];
-  if (!featured) {
+  const data = await getServiceCatalog();
+  const showcase = resolveShowcase(data);
+  const featured = showcase[0];
+  if (featured === undefined) {
     return null;
   }
-  const rest = services.filter((s) => s !== featured && !EXCLUDED_FROM_GRID.has(s.id));
+  const rest = showcase.slice(1);
   const rowOne = rest.slice(0, 2);
   const rowTwo = rest.slice(2);
 
@@ -61,22 +45,30 @@ export async function Services() {
           <Heading variant="section" font="display" as="h2" className="uppercase">
             Услуги и цены
           </Heading>
-          <a
-            href="#"
+          <Link
+            href="/services"
             className="inline-flex shrink-0 items-center gap-1.5 text-body font-medium text-primary transition-colors hover:text-primary-400 sm:pb-1"
           >
             Полный прейскурант
             <ArrowRight className="size-4" aria-hidden="true" />
-          </a>
+          </Link>
         </div>
 
         <div className="mt-8 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-10">
-          <FeaturedCard featured={featured} className="sm:col-span-2 lg:col-span-4" />
-          {rowOne.map((service) => (
-            <ServiceCard key={service.id} service={service} className="lg:col-span-3" />
+          <FeaturedCard item={featured} className="sm:col-span-2 lg:col-span-4" />
+          {rowOne.map((item) => (
+            <ShowcaseCard
+              key={item.group.services[item.index].id}
+              item={item}
+              className="lg:col-span-3"
+            />
           ))}
-          {rowTwo.map((service) => (
-            <ServiceCard key={service.id} service={service} className="lg:col-span-2" />
+          {rowTwo.map((item) => (
+            <ShowcaseCard
+              key={item.group.services[item.index].id}
+              item={item}
+              className="lg:col-span-2"
+            />
           ))}
           <SlabLink />
         </div>
@@ -85,30 +77,44 @@ export async function Services() {
   );
 }
 
+function ShowcaseCard({ item, className }: { item: ShowcaseItem; className?: string }) {
+  const service = item.group.services[item.index];
+  return (
+    <ServiceCard
+      service={service}
+      group={item.group}
+      className={className}
+      href={`/services/${item.group.id}/${service.id}`}
+    />
+  );
+}
+
 function SlabLink() {
   return (
-    <a
-      href="#"
+    <Link
+      href="/services"
       className="group col-span-full flex h-14 items-center justify-between rounded-lg bg-primary px-6 transition-colors duration-300 hover:bg-primary-hover sm:px-8"
     >
       <span className="font-mono text-base font-bold uppercase tracking-[0.12em] text-primary-ink">
         Все услуги и цены
       </span>
       <ArrowRight className="size-6 text-primary-ink transition-transform duration-300 group-hover:translate-x-2" />
-    </a>
+    </Link>
   );
 }
 
-function FeaturedCard({ featured, className }: { featured: Service; className?: string }) {
+function FeaturedCard({ item, className }: { item: ShowcaseItem; className?: string }) {
+  const featured = item.group.services[item.index];
+  const photo = featured.photo ?? item.group.photo;
   return (
     <a
-      href="#"
+      href={`/services/${item.group.id}/${featured.id}`}
       className={`group relative flex flex-col justify-end gap-1.5 overflow-hidden rounded-lg border-[1.5px] border-primary bg-panel-2 p-5 text-content transition-colors duration-300 hover:border-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg ${className ?? ''}`}
     >
-      {featured.photo ? (
+      {photo ? (
         <>
           <Image
-            src={featured.photo}
+            src={photo}
             alt=""
             fill
             sizes="(min-width: 1024px) 40vw, 100vw"
@@ -121,7 +127,7 @@ function FeaturedCard({ featured, className }: { featured: Service; className?: 
         </>
       ) : null}
       <span className="relative inline-flex w-fit items-center gap-1.5 rounded-sm bg-primary px-2 py-1 font-mono text-caption font-bold uppercase tracking-normal text-primary-ink max-sm:self-start sm:absolute sm:top-4 sm:right-4">
-        Первым 20 — 0 <BynSign className={BYN_CLASS} aria-label="белорусских рублей" />
+        Первым 20 — 0<BynSign aria-label="белорусских рублей" />
       </span>
       <span className="relative text-xl font-bold leading-[1.2]">{featured.title}</span>
       <span className="relative text-sm leading-normal text-content-muted">
@@ -133,52 +139,6 @@ function FeaturedCard({ featured, className }: { featured: Service; className?: 
         </span>
         <span className="flex size-8 items-center justify-center rounded-md bg-primary-ink transition-transform group-hover:translate-x-0.5">
           <ArrowRight className="size-4 text-primary" aria-hidden="true" />
-        </span>
-      </span>
-    </a>
-  );
-}
-
-function ServiceCard({ service, className }: { service: Service; className?: string }) {
-  const Icon = ICONS[service.id];
-  return (
-    <a
-      href="#"
-      className={`group relative flex overflow-hidden rounded-lg border border-border bg-panel transition-colors duration-300 hover:border-primary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 max-sm:flex-row max-sm:items-center max-sm:gap-3 max-sm:p-3.5 sm:min-h-48 sm:flex-col sm:justify-end sm:p-5 ${className ?? ''}`}
-    >
-      {service.photo ? (
-        <>
-          <Image
-            src={service.photo}
-            alt=""
-            fill
-            sizes="(min-width: 1024px) 20vw, 45vw"
-            className="hidden object-cover opacity-55 transition-[opacity,scale] duration-500 group-hover:scale-[1.03] group-hover:opacity-70 motion-reduce:transition-none motion-reduce:group-hover:scale-100 sm:block"
-          />
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 hidden bg-gradient-to-t from-bg via-bg/60 to-transparent sm:block"
-          />
-        </>
-      ) : null}
-
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-panel-2 transition-colors group-hover:bg-primary/15 sm:hidden">
-        {Icon ? <Icon className="size-4.5 text-primary" aria-hidden="true" /> : null}
-      </span>
-
-      <span className="relative flex flex-col max-sm:min-w-0 max-sm:flex-1 max-sm:gap-1 sm:gap-1.5">
-        <span className="text-sm font-semibold leading-[1.3] text-content sm:text-base">
-          {service.title}
-        </span>
-        <span className="hidden text-caption leading-normal text-content-muted sm:block">
-          {service.description}
-        </span>
-        <span className="relative flex items-center justify-between pt-2.5 max-sm:mt-0 max-sm:pt-0">
-          <PriceByn service={service} className="font-mono text-sm font-bold text-primary" />
-          <ArrowRight
-            className="size-4 shrink-0 text-content-dim transition-transform group-hover:translate-x-0.5 group-hover:text-content sm:hidden"
-            aria-hidden="true"
-          />
         </span>
       </span>
     </a>

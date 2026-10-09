@@ -11,6 +11,9 @@
     "gen:openapi": "nest build && node dist/src/gen-openapi.js",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "create-admin": "nest build && node dist/src/scripts/create-admin.js",
+    "seed:services": "nest build && node dist/src/scripts/seed-services.js",
+    "login:telegram": "nest build && node dist/src/scripts/login-telegram.js",
     "test": "vitest run"
   },
   "dependencies": {
@@ -22,13 +25,17 @@
     "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:",
     "@sto/types": "workspace:*",
+    "big-integer": "^1.6.52",
+    "multer": "^2.4.0",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
+    "teleproto": "^1.229.3",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@nestjs/cli": "catalog:",
     "@types/express": "^5.0.0",
+    "@types/multer": "^2.3.0",
     "@types/node": "catalog:",
     "dotenv": "^18.0.5",
     "prisma": "catalog:",

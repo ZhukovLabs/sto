@@ -5,6 +5,7 @@ const valid = {
   DATABASE_URL: 'postgresql://sto:sto@localhost:5432/sto',
   PORT: '3002',
   CORS_ORIGINS: 'http://localhost:3000, http://localhost:3001',
+  AUTH_SECRET: '0123456789abcdef0123456789abcdef',
 };
 
 describe('loadEnv', () => {
@@ -15,12 +16,16 @@ describe('loadEnv', () => {
   });
 
   it('подставляет значения по умолчанию', () => {
-    const env = loadEnv({ DATABASE_URL: valid.DATABASE_URL });
+    const env = loadEnv({ DATABASE_URL: valid.DATABASE_URL, AUTH_SECRET: valid.AUTH_SECRET });
     expect(env.PORT).toBe(3002);
     expect(env.CORS_ORIGINS).toEqual(['http://localhost:3000', 'http://localhost:3001']);
   });
 
+  it('отклоняет короткий AUTH_SECRET', () => {
+    expect(() => loadEnv({ ...valid, AUTH_SECRET: 'short' })).toThrow();
+  });
+
   it('отклоняет окружение без DATABASE_URL', () => {
-    expect(() => loadEnv({})).toThrow();
+    expect(() => loadEnv({ AUTH_SECRET: valid.AUTH_SECRET })).toThrow();
   });
 });

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Container, Heading, Text } from '@/shared/ui';
+import { Breadcrumbs, Container, Heading, Text } from '@/shared/ui';
 import { site } from '@/shared/config/site';
 
 export const metadata: Metadata = {
@@ -84,7 +84,8 @@ const SECTIONS: PolicySection[] = [
       'Действия с данными: сбор, запись, систематизация, накопление, хранение, уточнение, использование, удаление.',
       'Способы: на бумажных носителях (журнал записи, заказ-наряды) и в электронном виде (телефония, мессенджеры).',
       'Распространение персональных данных (публикация, передача неограниченному кругу лиц) не осуществляется.',
-      'Персональные данные не передаются иностранным государствам и международным организациям.',
+      'Трансграничная передача осуществляется в объёме, необходимом для работы сервиса: сервису Яндекс SmartCaptcha (Российская Федерация) могут передаваться IP-адрес и технические данные браузера для защиты форм от автоматических отправок; сервису Telegram (мессенджер, юрисдикция оператора — ОАЭ/Нидерланды) — имя, абонентский номер и данные заявки/записи для внутренних уведомлений мастеров и подтверждения клиенту.',
+      'Иные передачи за пределы Республики Беларусь не осуществляются.',
     ],
   },
   {
@@ -145,12 +146,9 @@ export default function PrivacyPage() {
   return (
     <main>
       <Container size="narrow" className="py-14 lg:py-16">
-        <a
-          href="/"
-          className="font-mono text-mono text-content-muted transition-colors hover:text-content"
-        >
-          ← На главную
-        </a>
+        <Breadcrumbs
+          items={[{ label: 'Главная', href: '/' }, { label: 'Политика персональных данных' }]}
+        />
 
         <Heading variant="section" font="display" className="mt-7 uppercase">
           Политика в отношении обработки персональных данных

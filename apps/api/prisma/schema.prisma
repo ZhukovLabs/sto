@@ -6,3 +6,128 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Request {
+  id             String           @id @default(uuid())
+  name           String
+  phone          String
+  comment        String?
+  status         String           @default("new")
+  idempotencyKey String?          @unique
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  lastReminderAt DateTime?
+  messages       RequestMessage[]
+
+  @@index([status, createdAt])
+}
+
+model Master {
+  id             String          @id @default(uuid())
+  name           String
+  telegramChatId BigInt          @unique
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model BookingSettings {
+  id              String   @id
+  slotStepMinutes Int      @default(60)
+  horizonDays     Int      @default(14)
+  capacity        Int      @default(1)
+  schedule        Json
+  exceptions      Json
+  updatedAt       DateTime @updatedAt
+}
+
+model Booking {
+  id             String           @id @default(uuid())
+  idempotencyKey String?          @unique
+  name           String
+  phone          String
+  car            String?
+  services      String[]      @default([])
+  comment        String?
+  scheduledAt    DateTime
+  status         String           @default("booked")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  messages       BookingMessage[]
+
+  @@index([scheduledAt])
+  @@index([status, createdAt])
+}
+
+model BookingMessage {
+  id        String   @id @default(uuid())
+  bookingId String
+  chatId    BigInt
+  messageId Int
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, messageId])
+  @@index([bookingId])
+}
+
+model RequestMessage {
+  id        String  @id @default(uuid())
+  requestId String
+  chatId    BigInt
+  messageId Int
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, messageId])
+  @@index([requestId])
+}
+
+model NotificationSettings {
+  id           String   @id @default("singleton")
+  channelOrder String[] @default(["telegram", "viber", "sms"])
+  updatedAt    DateTime @updatedAt
+}
+
+model ServiceGroup {
+  id       String    @id
+  title    String
+  icon     String?
+  photo    String?
+  position Int       @default(0)
+  isActive Boolean   @default(true)
+  services Service[]
+}
+
+model Service {
+  id             String          @id
+  groupId        String
+  group          ServiceGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  title          String
+  description    String
+  details        String?
+  priceFrom      Int
+  priceTo        Int?
+  unit           String?
+  photo          String?
+  position       Int             @default(0)
+  isActive       Boolean         @default(true)
+  showcaseSlots  ShowcaseSlot[]
+
+  @@index([groupId, position])
+}
+
+model ShowcaseSlot {
+  id        String  @id @default(uuid())
+  serviceId String  @unique
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  position  Int     @default(0)
+}

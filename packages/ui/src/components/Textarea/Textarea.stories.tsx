@@ -26,3 +26,13 @@ export const WithError: Story = {
     error: 'Пара слов о симптомах поможет подготовиться к визиту',
   },
 };
+
+export const WithCounter: Story = {
+  args: {
+    label: 'Комментарий (необязательно)',
+    placeholder: 'Пара слов о том, что беспокоит',
+    rows: 6,
+    maxLength: 500,
+    defaultValue: 'Стучит спереди справа на кочках',
+  },
+};

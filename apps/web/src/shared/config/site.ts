@@ -16,6 +16,11 @@ export const site = {
   telegram: '@promaks_sto',
   viber: '+375290000000',
   unp: '000000000',
+  map: {
+    lat: 52.4345,
+    lon: 30.9754,
+    zoom: 14,
+  },
 } as const;
 
 export type Site = typeof site;

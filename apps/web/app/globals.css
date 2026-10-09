@@ -2,3 +2,18 @@
 @import '@sto/ui/fonts.css';
 @import '@sto/ui/tokens.css';
 @source '../../../packages/ui/src';
+
+html {
+  scroll-padding-top: 5rem;
+}
+
+[data-modal-open] [data-modal-open-hide] {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  body.has-action-bar {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+    transition: padding-bottom 0.3s ease-out;
+  }
+}
