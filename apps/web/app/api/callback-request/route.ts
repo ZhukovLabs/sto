@@ -6,6 +6,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const body = (await request.json().catch(() => null)) as {
     name?: string;
     phone?: string;
+    comment?: string;
     company?: string;
   } | null;
   if (body === null || typeof body.name !== 'string' || typeof body.phone !== 'string') {
@@ -22,7 +23,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         ...(idempotencyKey !== null ? { 'idempotency-key': idempotencyKey } : {}),
         ...(captchaToken !== null ? { 'x-captcha-token': captchaToken } : {}),
       },
-      body: JSON.stringify({ name: body.name, phone: body.phone, company: body.company }),
+      body: JSON.stringify({
+        name: body.name,
+        phone: body.phone,
+        comment: body.comment,
+        company: body.company,
+      }),
     });
   } catch {
     return NextResponse.json({ message: 'Сервис недоступен, попробуйте позже' }, { status: 502 });

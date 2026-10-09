@@ -13,6 +13,7 @@ export interface BookingSlot {
 export interface CallbackRequest {
   name: string;
   phone: string;
+  comment?: string;
   /** Honeypot: заполняют только боты. */
   company?: string;
 }

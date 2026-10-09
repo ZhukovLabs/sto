@@ -78,6 +78,7 @@ export async function submitCallbackRequest(args: {
     {
       name: args.request.name,
       phone: args.request.phone,
+      ...(args.request.comment === undefined ? {} : { comment: args.request.comment }),
       ...(args.request.company === undefined ? {} : { company: args.request.company }),
     },
     args.idempotencyKey,
