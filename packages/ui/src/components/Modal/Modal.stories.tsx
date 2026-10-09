@@ -52,3 +52,19 @@ export const СlosesByTrigger: Story = {
     return <Component />;
   },
 };
+
+export const ExtraLarge: Story = {
+  args: {
+    open: true,
+    onClose: () => {},
+    title: 'Записаться',
+    size: 'xl',
+    children: (
+      <div className="flex flex-col gap-4">
+        <Input label="Имя" placeholder="Как к вам обращаться" />
+        <Input label="Телефон" placeholder="+375 29 000-00-00" type="tel" />
+      </div>
+    ),
+    footer: <Button>Отправить</Button>,
+  },
+};

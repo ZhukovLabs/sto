@@ -21,7 +21,28 @@ export const Default: Story = {
             label="Дата записи"
             value={value}
             onChange={setValue}
-            placeholder="Выберите дату"
+            isDateDisabled={(iso) => new Date(iso).getDay() === 0}
+          />
+        </div>
+      );
+    };
+    return <Component />;
+  },
+};
+
+export const ManualInput: Story = {
+  render: () => {
+    const Component = () => {
+      const [value, setValue] = useState('');
+      return (
+        <div className="max-w-xs">
+          <DatePicker
+            label="Ручной ввод"
+            helper="Кликните по полю и введите дату как 15.09.2026, либо откройте календарь кнопкой"
+            value={value}
+            onChange={setValue}
+            min="2025-01-01"
+            max="2027-12-31"
             isDateDisabled={(iso) => new Date(iso).getDay() === 0}
           />
         </div>

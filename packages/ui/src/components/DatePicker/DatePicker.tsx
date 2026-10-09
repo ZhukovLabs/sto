@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom';
 import { createPortal } from 'react-dom';
 
 const MONTHS_NOM = [
@@ -17,6 +18,20 @@ const MONTHS_NOM = [
   'Ноябрь',
   'Декабрь',
 ];
+const MONTHS_GEN = [
+  'января',
+  'февраля',
+  'марта',
+  'апреля',
+  'мая',
+  'июня',
+  'июля',
+  'августа',
+  'сентября',
+  'октября',
+  'ноября',
+  'декабря',
+];
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
 
 const toIso = (date: Date) =>
@@ -28,6 +43,50 @@ const fromIso = (iso: string) => {
   const [year, month, day] = iso.split('-').map(Number);
   return new Date(year, month - 1, day);
 };
+
+const toMasked = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
+
+/** Шаблон с фиксированными позициями: сегменты дд/мм/гггг и несглаживаемые точки. */
+const TEMPLATE = 'дд.мм.гггг';
+const isDigitSlot = (index: number) => index !== 2 && index !== 5;
+const isComplete = (masked: string) => /^\d{2}\.\d{2}\.\d{4}$/.test(masked);
+
+/** Цифры в шаблон по порядку слева направо. */
+function fillTemplate(digits: string): string {
+  const chars = TEMPLATE.split('');
+  let di = 0;
+  for (let i = 0; i < chars.length && di < digits.length; i += 1) {
+    if (isDigitSlot(i)) chars[i] = digits[di++];
+  }
+  return chars.join('');
+}
+
+/** Позиция каретки в маске после n-й цифры. */
+function caretAfterDigits(masked: string, digitsPos: number): number {
+  let seen = 0;
+  let index = 0;
+  while (index < masked.length && seen < digitsPos) {
+    if (/\d/.test(masked[index])) seen += 1;
+    index += 1;
+  }
+  return index;
+}
+
+/** Парсинг готовой строки дд.мм.гггг → ISO; null, если даты не существует. */
+function parseMasked(masked: string): string | null {
+  const match = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(masked);
+  if (!match) return null;
+  const [, dd, mm, yyyy] = match;
+  const date = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+  if (
+    date.getFullYear() !== Number(yyyy) ||
+    date.getMonth() !== Number(mm) - 1 ||
+    date.getDate() !== Number(dd)
+  ) {
+    return null;
+  }
+  return toIso(date);
+}
 
 /** Сетка месяца: Пн-первый, недо-дни предыдущего месяца = null. */
 function buildMonth(year: number, month: number): (Date | null)[] {
@@ -56,7 +115,7 @@ export function DatePicker({
   value,
   onChange,
   label,
-  placeholder = 'Выберите дату',
+  placeholder = 'дд.мм.гггг',
   error,
   helper,
   min,
@@ -65,9 +124,13 @@ export function DatePicker({
   format,
 }: DatePickerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [text, setText] = useState(() => (value ? toMasked(value) : TEMPLATE));
+  const [maskError, setMaskError] = useState<string | null>(null);
   const [view, setView] = useState(() => {
     const base = value ? fromIso(value) : new Date();
     return { year: base.getFullYear(), month: base.getMonth() };
@@ -84,22 +147,7 @@ export function DatePicker({
     format ??
     ((iso: string) => {
       const date = fromIso(iso);
-      return `${date.getDate()} ${
-        [
-          'января',
-          'февраля',
-          'марта',
-          'апреля',
-          'мая',
-          'июня',
-          'июля',
-          'августа',
-          'сентября',
-          'октября',
-          'ноября',
-          'декабря',
-        ][date.getMonth()]
-      }`;
+      return `${date.getDate()} ${MONTHS_GEN[date.getMonth()]}`;
     });
 
   const cells = useMemo(() => buildMonth(view.year, view.month), [view]);
@@ -111,24 +159,125 @@ export function DatePicker({
     return isDateDisabled?.(iso) ?? false;
   };
 
+  /** Применяет строку маски к значению. finalize — blur/Enter: неполный ввод тоже ошибка. */
+  const commitText = (candidate: string, finalize: boolean): boolean => {
+    if (isComplete(candidate)) {
+      const iso = parseMasked(candidate);
+      if (!iso) {
+        setMaskError('Такой даты не существует — пример: 15.09.2026');
+        return false;
+      }
+      if (min && iso < min) {
+        setMaskError('Дата раньше доступного диапазона');
+        return false;
+      }
+      if (max && iso > max) {
+        setMaskError('Дата позже доступного диапазона');
+        return false;
+      }
+      if (isDateDisabled?.(iso)) {
+        setMaskError('На эту дату нет свободных слотов');
+        return false;
+      }
+      setMaskError(null);
+      if (iso !== value) onChange(iso);
+      return true;
+    }
+    if (finalize) {
+      if (candidate === TEMPLATE || candidate === '') {
+        setMaskError(null);
+        if (value) onChange('');
+        return true;
+      }
+      setMaskError('Введите дату полностью — например, 15.09.2026');
+      return false;
+    }
+    return false;
+  };
+
+  /**
+   * Посегментная правка: длины 9/10/11 — локальные правки по фиксированным позициям
+   * (цифра занимает слот, Backspace возвращает глиф, точки несглаживаемы),
+   * прочие длины — вставка/очистка, цифры раскладываются по шаблону с начала.
+   */
+  const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const el = event.target;
+    const raw = el.value;
+    let next = text;
+    let caret = el.selectionStart ?? raw.length;
+    if (raw.length === 10) {
+      const chars = TEMPLATE.split('');
+      for (let i = 0; i < 10; i += 1) {
+        if (isDigitSlot(i) && /\d/.test(raw[i])) chars[i] = raw[i];
+      }
+      next = chars.join('');
+    } else if (raw.length === 9) {
+      let p = 0;
+      while (p < raw.length && raw[p] === text[p]) p += 1;
+      if (p < 10 && isDigitSlot(p)) {
+        const chars = text.split('');
+        chars[p] = TEMPLATE[p];
+        next = chars.join('');
+      }
+      caret = Math.min(p, 9);
+    } else if (raw.length === 11) {
+      let p = 0;
+      while (p < text.length && text[p] === raw[p]) p += 1;
+      let slot = p;
+      if (slot < 10 && !isDigitSlot(slot)) slot += 1; // вставка над точкой — пишем в следующий слот
+      if (slot < 10 && /\d/.test(raw[p])) {
+        const chars = text.split('');
+        chars[slot] = raw[p];
+        next = chars.join('');
+      }
+      caret = Math.min(slot + 1, 10);
+    } else {
+      const digits = (raw.match(/\d/g) ?? []).join('').slice(0, 8);
+      next = fillTemplate(digits);
+      const filled = (next.match(/\d/g) ?? []).length;
+      caret = caretAfterDigits(next, filled);
+    }
+    el.value = next;
+    el.setSelectionRange(caret, caret);
+    setText(next);
+    if (isComplete(next)) commitText(next, false);
+    else setMaskError(null);
+  };
+
+  const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (commitText(text, true)) setOpen(false);
+    } else if (event.key === 'Escape') {
+      setText(value ? toMasked(value) : TEMPLATE);
+      setMaskError(null);
+    }
+  };
+
+  const onInputBlur = () => {
+    setFocused(false);
+    commitText(text, true);
+  };
+
   useEffect(() => {
     if (!open) return;
-    let frame = 0;
-    const update = () => {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const height = gridRef.current?.offsetHeight ?? 352;
-      const width = gridRef.current?.offsetWidth ?? 304;
-      const margin = 8;
-      const fitsBelow = rect.bottom + margin + height <= window.innerHeight - margin;
-      const fitsAbove = rect.top - margin - height >= margin;
-      const top = fitsBelow || !fitsAbove ? rect.bottom + margin : rect.top - margin - height;
-      setPosition({
-        top,
-        left: Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin)),
-      });
-    };
-    frame = requestAnimationFrame(update);
+    const anchor = triggerRef.current;
+    const grid = gridRef.current;
+    if (!anchor || !grid) return;
+    const auto = autoUpdate(
+      anchor,
+      grid,
+      () => {
+        computePosition(anchor, grid, {
+          strategy: 'fixed',
+          placement: 'bottom-end',
+          middleware: [offset(8), flip({ padding: 8 }), shift({ padding: 8 })],
+        }).then(({ x, y }) => {
+          setPosition({ top: y, left: x });
+        });
+      },
+      { animationFrame: true },
+    );
     const onPointerDown = (event: PointerEvent) => {
       if (
         !rootRef.current?.contains(event.target as Node) &&
@@ -141,19 +290,15 @@ export function DatePicker({
       if (event.key === 'Escape') {
         event.stopPropagation();
         setOpen(false);
-        triggerRef.current?.focus();
+        inputRef.current?.focus();
       }
     };
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKey, true);
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
     return () => {
-      cancelAnimationFrame(frame);
+      auto();
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKey, true);
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
     };
   }, [open, view]);
 
@@ -170,6 +315,10 @@ export function DatePicker({
       focusable?.focus();
     }
   }, [open, view]);
+
+  useEffect(() => {
+    setText(value ? toMasked(value) : TEMPLATE);
+  }, [value]);
 
   const shiftMonth = (delta: number) => {
     setView((prev) => {
@@ -296,9 +445,10 @@ export function DatePicker({
                   tabIndex={-1}
                   disabled={disabled}
                   onClick={() => {
+                    setMaskError(null);
                     onChange(iso);
                     setOpen(false);
-                    triggerRef.current?.focus();
+                    inputRef.current?.focus();
                   }}
                   className={`flex size-9 items-center justify-center rounded-md text-body transition-colors motion-reduce:transition-none ${
                     selected
@@ -320,6 +470,8 @@ export function DatePicker({
       )
     : null;
 
+  const display = maskError && text ? text : focused ? text : value ? formatLabel(value) : '';
+
   return (
     <div ref={rootRef} className="relative flex w-full flex-col gap-2">
       {label ? (
@@ -327,50 +479,62 @@ export function DatePicker({
           {label}
         </label>
       ) : null}
-      <button
-        ref={triggerRef}
-        type="button"
-        id={id}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
-        className={`flex h-12 w-full items-center justify-between rounded-lg border bg-panel px-4 text-body-lg transition-colors motion-reduce:transition-none ${
-          error
-            ? 'border-danger hover:border-danger'
-            : 'border-border hover:border-border-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-focus focus:ring-offset-2 focus:ring-offset-bg'
-        }`}
-      >
-        <span className={value ? 'text-content' : 'text-content-dim'}>
-          {value ? formatLabel(value) : placeholder}
-        </span>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          aria-hidden="true"
-          className="text-content-dim"
+      <div className="relative">
+        <input
+          ref={inputRef}
+          id={id}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder={placeholder}
+          aria-invalid={Boolean(maskError ?? error)}
+          value={display}
+          onChange={onInputChange}
+          onKeyDown={onInputKeyDown}
+          onFocus={() => {
+            setFocused(true);
+            requestAnimationFrame(() => inputRef.current?.setSelectionRange(0, 0));
+          }}
+          onBlur={onInputBlur}
+          className={`h-12 w-full rounded-lg border bg-panel pr-11 pl-4 text-body-lg text-content transition-colors motion-reduce:transition-none placeholder:text-content-dim ${
+            (maskError ?? error)
+              ? 'border-danger hover:border-danger'
+              : 'border-border hover:border-border-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-focus focus:ring-offset-2 focus:ring-offset-bg'
+          }`}
+        />
+        <button
+          ref={triggerRef}
+          type="button"
+          aria-label="Открыть календарь"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen((prev) => !prev)}
+          className="absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-content-dim transition-colors hover:bg-panel hover:text-content focus:outline-none focus:ring-2 focus:ring-focus motion-reduce:transition-none"
         >
-          <rect
-            x="1.5"
-            y="3"
-            width="13"
-            height="11.5"
-            rx="2"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-          <path d="M1.5 6.5h13" stroke="currentColor" strokeWidth="1.5" />
-          <path
-            d="M5 1.5V4M11 1.5V4"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <rect
+              x="1.75"
+              y="2.5"
+              width="12.5"
+              height="11"
+              rx="2"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <path d="M1.75 6h12.5" stroke="currentColor" strokeWidth="1.5" />
+            <path
+              d="M5.25 1v2.5M10.75 1v2.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      </div>
       {helper ? <span className="text-caption text-content-dim">{helper}</span> : null}
-      {error ? <span className="text-caption text-danger">{error}</span> : null}
+      {(maskError ?? error) ? (
+        <span className="text-caption text-danger">{maskError ?? error}</span>
+      ) : null}
       {popover}
     </div>
   );

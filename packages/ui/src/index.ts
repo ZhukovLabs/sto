@@ -66,3 +66,24 @@ export type {
   TabsTriggerProps,
   TabsContentProps,
 } from './components/Tabs/Tabs';
+export { SegmentedControl } from './components/SegmentedControl/SegmentedControl';
+export type {
+  SegmentedControlProps,
+  SegmentedControlItem,
+} from './components/SegmentedControl/SegmentedControl';
+export {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeadCell,
+  TableCell,
+} from './components/Table/Table';
+export type {
+  TableProps,
+  TableHeadProps,
+  TableBodyProps,
+  TableRowProps,
+  TableHeadCellProps,
+  TableCellProps,
+} from './components/Table/Table';
