@@ -30,6 +30,20 @@ describe('formatRequestMessage', () => {
     const message = formatRequestMessage({ name: '<b>Иван</b>', phone: '+375 29 000-00-00' });
     expect(message).toContain('&lt;b&gt;Иван&lt;/b&gt;');
   });
+
+  it('добавляет комментарий после телефона и экранирует его', () => {
+    const message = formatRequestMessage({
+      name: 'Иван',
+      phone: '+375 29 000-00-00',
+      comment: '<i>Машину тянет вправо</i>',
+    });
+    expect(message).toContain('Комментарий: &lt;i&gt;Машину тянет вправо&lt;/i&gt;');
+  });
+
+  it('не выводит строку комментария без комментария', () => {
+    const message = formatRequestMessage({ name: 'Иван', phone: '+375 29 000-00-00' });
+    expect(message).not.toContain('Комментарий:');
+  });
 });
 
 describe('formatReminderMessage', () => {

@@ -1,10 +1,41 @@
-import { SERVICES } from './model/mocks';
-import type { Service } from './model/types';
+import type { Service, ServiceGroup, ShowcaseSlot } from './model/types';
+
+const API_URL = process.env.API_URL ?? 'http://localhost:3002';
+
+export interface CatalogGroup extends ServiceGroup {
+  services: Service[];
+}
+
+export interface ServiceCatalogData {
+  groups: CatalogGroup[];
+  showcase: ShowcaseSlot[];
+}
 
 /**
- * Слой доступа к данным услуг. Пока возвращает моки —
- * при появлении эндпоинта в @sto/api заменить тело на fetch с revalidate.
+ * Каталог услуг из @sto/api для серверных компонентов.
+ * Кэшируется с тегом services — сбрасывается вебхуком /api/revalidate.
+ * При недоступном API возвращает null (например, сборка в CI без бэкенда).
  */
-export async function getServices(): Promise<Service[]> {
-  return SERVICES;
+export async function getServiceCatalog(): Promise<ServiceCatalogData | null> {
+  try {
+    const response = await fetch(`${API_URL}/services/catalog`, {
+      next: { tags: ['services'], revalidate: 3600 },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return (await response.json()) as ServiceCatalogData;
+  } catch {
+    return null;
+  }
+}
+
+/** Список названий активных услуг для диалога записи (клиентский fetch). */
+export async function fetchServiceTitles(): Promise<string[]> {
+  const response = await fetch('/api/services');
+  if (!response.ok) {
+    throw new Error('Не удалось загрузить список услуг');
+  }
+  const titles = (await response.json()) as string[];
+  return [...titles, 'Другое'];
 }

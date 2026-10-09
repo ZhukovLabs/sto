@@ -1,12 +1,30 @@
+export type ServiceUnit = 'wheel' | 'pcs' | 'season';
+
+export type GroupIconKey = 'scan' | 'wrench' | 'disc' | 'cog' | 'gauge' | 'circle' | 'snowflake';
+
+export interface ServiceGroup {
+  id: string;
+  title: string;
+  icon: GroupIconKey | null;
+  photo: string | null;
+  position: number;
+  isActive: boolean;
+}
+
 export interface Service {
   id: string;
-  slug: string;
+  groupId: string;
   title: string;
   description: string;
   priceFrom: number;
-  priceTo?: number;
-  unit?: string;
-  popular?: boolean;
-  /** Путь к фото-подложке карточки в public, напр. '/services/brakes.webp' */
-  photo?: string;
+  priceTo: number | null;
+  unit: ServiceUnit | null;
+  photo: string | null;
+  position: number;
+  isActive: boolean;
+}
+
+export interface ShowcaseSlot {
+  serviceId: string;
+  position: number;
 }
