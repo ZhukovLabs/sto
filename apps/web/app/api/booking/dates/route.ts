@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-
-const API_URL = process.env.API_URL ?? 'http://localhost:3002';
+import { API_URL } from '@/shared/config/api';
 
 export async function GET(): Promise<NextResponse> {
   const response = await fetch(`${API_URL}/bookings/dates`, { cache: 'no-store' });

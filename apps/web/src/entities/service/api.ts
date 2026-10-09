@@ -1,6 +1,5 @@
 import type { Service, ServiceGroup, ShowcaseSlot } from './model/types';
-
-const API_URL = process.env.API_URL ?? 'http://localhost:3002';
+import { API_URL } from '@/shared/config/api';
 
 export interface CatalogGroup extends ServiceGroup {
   services: Service[];

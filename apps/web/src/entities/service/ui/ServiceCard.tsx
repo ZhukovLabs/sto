@@ -14,9 +14,7 @@ const ICONS: Record<GroupIconKey, LucideIcon> = {
   snowflake: Snowflake,
 };
 
-const BYN_CLASS = 'inline h-[0.76em] w-auto -translate-y-[0.08em]';
-
-const UNIT_SHORT: Record<ServiceUnit, string> = {
+export const UNIT_SHORT: Record<ServiceUnit, string> = {
   wheel: '/кол',
   pcs: '/шт',
   season: '/сезон',
@@ -30,14 +28,19 @@ export function servicePhoto(service: Service, group?: ServiceGroup): string | n
   return service.photo ?? group?.photo ?? null;
 }
 
+/** «от X» / «X–Y» без валюты — общий формат цены услуги для всех мест вывода. */
+export function formatPriceFrom(service: Pick<Service, 'priceFrom' | 'priceTo'>): string {
+  return service.priceTo !== null
+    ? `${service.priceFrom}–${service.priceTo}`
+    : `от ${service.priceFrom}`;
+}
+
 export function PriceByn({ service, className }: { service: Service; className?: string }) {
   const unitShort = service.unit === null ? null : (UNIT_SHORT[service.unit] ?? null);
   return (
     <span className={`whitespace-nowrap ${className ?? ''}`}>
-      {service.priceTo !== null
-        ? `${service.priceFrom}–${service.priceTo}`
-        : `от ${service.priceFrom}`}{' '}
-      <BynSign className={BYN_CLASS} aria-label="белорусских рублей" />
+      {formatPriceFrom(service)}
+      <BynSign aria-label="белорусских рублей" />
       {unitShort ? <span className="text-[0.85em] text-content-dim"> {unitShort}</span> : null}
     </span>
   );
@@ -47,11 +50,13 @@ export interface ServiceCardProps {
   service: Service;
   group?: ServiceGroup;
   className?: string;
-  /** Клик по карточке: в каталоге открывает диалог записи */
+  /** Клик по карточке: открывает диалог записи */
   onSelect?: (title: string) => void;
+  /** Ссылка на страницу услуги (каталог, витрина) */
+  href?: string;
 }
 
-export function ServiceCard({ service, group, className, onSelect }: ServiceCardProps) {
+export function ServiceCard({ service, group, className, onSelect, href }: ServiceCardProps) {
   const Icon = groupIcon(group?.icon ?? null);
   const photo = servicePhoto(service, group);
   const interactiveClass =
@@ -118,7 +123,7 @@ export function ServiceCard({ service, group, className, onSelect }: ServiceCard
   }
 
   return (
-    <a href="#" className={`${interactiveClass} ${className ?? ''}`}>
+    <a href={href ?? '#'} className={`${interactiveClass} ${className ?? ''}`}>
       {content}
     </a>
   );

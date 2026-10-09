@@ -1,4 +1,4 @@
-import { Container, Heading, Text } from '@/shared/ui';
+import { Breadcrumbs, Container, Heading, Text } from '@/shared/ui';
 import { getServiceCatalog } from '@/entities/service';
 import { ServicesCatalogSection } from '../ui/ServicesCatalogSection';
 
@@ -6,8 +6,9 @@ export function ServicesPage() {
   return (
     <>
       <section className="border-b border-border">
-        <Container size="site" className="pb-10 pt-12 sm:pt-16">
-          <Heading variant="display-lg" font="display" as="h1" className="uppercase">
+        <Container size="site" className="pb-10 pt-8 sm:pt-10">
+          <Breadcrumbs items={[{ label: 'Главная', href: '/' }, { label: 'Услуги и цены' }]} />
+          <Heading variant="display-lg" font="display" as="h1" className="mt-5 uppercase">
             Услуги и цены
           </Heading>
           <Text variant="body-lg" color="muted" className="mt-4 max-w-[640px]">

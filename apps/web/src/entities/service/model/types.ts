@@ -16,6 +16,7 @@ export interface Service {
   groupId: string;
   title: string;
   description: string;
+  details: string | null;
   priceFrom: number;
   priceTo: number | null;
   unit: ServiceUnit | null;

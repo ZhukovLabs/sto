@@ -30,11 +30,13 @@ function GroupTitle({ group }: { group: CatalogGroup }) {
       <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-panel-2">
         {Icon ? <Icon className="size-4 text-primary" aria-hidden="true" /> : null}
       </span>
-      <h2
-        id={`group-${group.id}`}
-        className="font-mono text-base font-bold uppercase tracking-[0.08em] text-content"
-      >
-        {group.title}
+      <h2 id={`group-${group.id}`} className="min-w-0">
+        <a
+          href={`/services/${group.id}`}
+          className="font-mono text-base font-bold uppercase tracking-[0.08em] text-content transition-colors hover:text-primary"
+        >
+          {group.title}
+        </a>
       </h2>
       <span aria-hidden="true" className="h-px flex-1 bg-border" />
       <span className="font-mono text-caption uppercase tracking-[0.08em] text-content-dim">
@@ -44,17 +46,16 @@ function GroupTitle({ group }: { group: CatalogGroup }) {
   );
 }
 
-function GroupCards({
-  group,
-  onSelect,
-}: {
-  group: CatalogGroup;
-  onSelect: (title: string) => void;
-}) {
+function GroupCards({ group }: { group: CatalogGroup }) {
   return (
     <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
       {group.services.map((service) => (
-        <ServiceCard key={service.id} service={service} group={group} onSelect={onSelect} />
+        <ServiceCard
+          key={service.id}
+          service={service}
+          group={group}
+          href={`/services/${group.id}/${service.id}`}
+        />
       ))}
     </div>
   );
@@ -85,7 +86,12 @@ function GroupTable({
           <TableRow key={service.id}>
             <TableCell>
               <div className="flex flex-col gap-0.5">
-                <span className="font-medium">{service.title}</span>
+                <a
+                  href={`/services/${group.id}/${service.id}`}
+                  className="font-medium transition-colors hover:text-primary"
+                >
+                  {service.title}
+                </a>
                 <span className="text-caption text-content-muted">{service.description}</span>
               </div>
             </TableCell>
@@ -166,11 +172,11 @@ export function ServicesCatalog({
         >
           <GroupTitle group={group} />
           {view === 'cards' ? (
-            <GroupCards group={group} onSelect={onOrder} />
+            <GroupCards group={group} />
           ) : (
             <>
               <div className="sm:hidden">
-                <GroupCards group={group} onSelect={onOrder} />
+                <GroupCards group={group} />
               </div>
               <div className="hidden sm:block">
                 <GroupTable group={group} onSelect={onOrder} />

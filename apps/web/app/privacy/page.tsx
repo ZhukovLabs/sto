@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Container, Heading, Text } from '@/shared/ui';
+import { Breadcrumbs, Container, Heading, Text } from '@/shared/ui';
 import { site } from '@/shared/config/site';
 
 export const metadata: Metadata = {
@@ -146,12 +146,9 @@ export default function PrivacyPage() {
   return (
     <main>
       <Container size="narrow" className="py-14 lg:py-16">
-        <a
-          href="/"
-          className="font-mono text-mono text-content-muted transition-colors hover:text-content"
-        >
-          ← На главную
-        </a>
+        <Breadcrumbs
+          items={[{ label: 'Главная', href: '/' }, { label: 'Политика персональных данных' }]}
+        />
 
         <Heading variant="section" font="display" className="mt-7 uppercase">
           Политика в отношении обработки персональных данных

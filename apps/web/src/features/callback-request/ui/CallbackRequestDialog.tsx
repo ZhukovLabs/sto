@@ -197,6 +197,7 @@ export function CallbackRequestDialog({
   const [datesError, setDatesError] = useState<string | null>(null);
   const [slots, setSlots] = useState<BookingSlot[]>([]);
   const [slotsPending, setSlotsPending] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
   const [serviceOptions, setServiceOptions] = useState<string[]>([]);
   const [captchaRequired, setCaptchaRequired] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -227,6 +228,7 @@ export function CallbackRequestDialog({
     setStatus('idle');
     setErrors({});
     setDatesError(null);
+    setSlotsError(null);
     setCaptchaRequired(false);
     if (preselectedService) {
       setMode('booking');
@@ -260,12 +262,13 @@ export function CallbackRequestDialog({
     if (!form.date) return;
     let active = true;
     setSlotsPending(true);
+    setSlotsError(null);
     getBookingSlots(form.date)
       .then((next) => {
         if (active) setSlots(next);
       })
-      .catch(() => {
-        if (active) setSlots([]);
+      .catch((error: Error) => {
+        if (active) setSlotsError(error.message);
       })
       .finally(() => {
         if (active) setSlotsPending(false);
@@ -434,7 +437,7 @@ export function CallbackRequestDialog({
                 setConsentError(null);
               }}
               label={
-                <span className="text-content-dim">
+                <span className="text-balance text-content-dim">
                   Даю согласие на&nbsp;обработку персональных данных для&nbsp;связи со&nbsp;мной
                   и&nbsp;записи на&nbsp;сервис в&nbsp;соответствии с&nbsp;
                   <a
@@ -528,6 +531,10 @@ export function CallbackRequestDialog({
                       {slotsPending ? (
                         <Text variant="caption" color="dim">
                           Загружаем свободные часы…
+                        </Text>
+                      ) : slotsError !== null ? (
+                        <Text variant="caption" className="text-danger">
+                          {slotsError} — попробуйте ещё раз позже.
                         </Text>
                       ) : slots.length === 0 ? (
                         <Text variant="caption" color="dim">

@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-
-const API_URL = process.env.API_URL ?? 'http://localhost:3002';
+import { API_URL } from '@/shared/config/api';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const date = request.nextUrl.searchParams.get('date') ?? '';

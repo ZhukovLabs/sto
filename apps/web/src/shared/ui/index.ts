@@ -1,6 +1,7 @@
 export {
   Avatar,
   Badge,
+  Breadcrumbs,
   Button,
   BynSign,
   Card,

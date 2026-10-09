@@ -3,4 +3,11 @@ import type { Service, ServiceGroup, ServiceUnit, GroupIconKey, ShowcaseSlot } f
 
 export type { Service, ServiceGroup, ServiceUnit, GroupIconKey, ShowcaseSlot, CatalogGroup };
 export { getServiceCatalog, fetchServiceTitles } from './api';
-export { PriceByn, ServiceCard, groupIcon } from './ui/ServiceCard';
+export {
+  PriceByn,
+  ServiceCard,
+  groupIcon,
+  servicePhoto,
+  formatPriceFrom,
+  UNIT_SHORT,
+} from './ui/ServiceCard';
