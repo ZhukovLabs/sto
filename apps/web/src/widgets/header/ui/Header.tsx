@@ -80,7 +80,7 @@ export function Header() {
             </ul>
           </nav>
 
-          <div className="flex shrink-0 items-center justify-self-end gap-4 sm:gap-8">
+          <div className="col-start-3 flex shrink-0 items-center justify-self-end gap-4 sm:gap-8">
             <a href={`tel:${phone.value}`} className="hidden flex-col items-end gap-0.5 md:flex">
               <span className="font-mono text-body-lg font-semibold text-content">
                 {phone.pretty}
