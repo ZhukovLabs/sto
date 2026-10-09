@@ -25,6 +25,7 @@ export interface ServiceDialogProps {
 interface FormState {
   title: string;
   description: string;
+  details: string;
   priceFrom: string;
   priceTo: string;
   unit: string;
@@ -37,6 +38,7 @@ function toForm(service: ServiceRow | null, defaultGroupId: string): FormState {
   return {
     title: service?.title ?? '',
     description: service?.description ?? '',
+    details: service?.details ?? '',
     priceFrom: service === null ? '' : String(service.priceFrom),
     priceTo:
       service?.priceTo === null || service?.priceTo === undefined ? '' : String(service.priceTo),
@@ -87,6 +89,7 @@ export function ServiceDialog({
       const body = {
         title: form.title.trim(),
         description: form.description.trim(),
+        details: form.details.trim() === '' ? null : form.details.trim(),
         priceFrom,
         priceTo,
         unit: form.unit === '' ? null : form.unit,
@@ -134,6 +137,15 @@ export function ServiceDialog({
           rows={2}
           value={form.description}
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+        />
+        <Textarea
+          id="service-details"
+          label="Подробное описание (необязательно)"
+          placeholder="Для страницы услуги: что входит, как проходит, гарантии — до 2000 символов"
+          rows={5}
+          maxLength={2000}
+          value={form.details}
+          onChange={(event) => setForm((prev) => ({ ...prev, details: event.target.value }))}
         />
         <div className="grid grid-cols-2 gap-3">
           <Input

@@ -506,6 +506,7 @@ export interface ServiceRow {
   groupId: string;
   title: string;
   description: string;
+  details: string | null;
   priceFrom: number;
   priceTo: number | null;
   unit: ServiceUnit | null;
@@ -537,6 +538,7 @@ export interface ServicesCatalog {
 export interface ServiceInput {
   title: string;
   description: string;
+  details?: string | null;
   priceFrom: number;
   priceTo?: number | null;
   unit?: ServiceUnit | null;

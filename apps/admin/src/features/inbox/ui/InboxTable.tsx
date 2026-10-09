@@ -16,6 +16,7 @@ interface RequestRow {
   id: string;
   name: string;
   phone: string;
+  comment: string | null;
   status: string;
   createdAt: string;
 }
@@ -150,7 +151,7 @@ export function InboxTable() {
         scheduledAt: null,
         car: null,
         services: [],
-        comment: null,
+        comment: r.comment,
       }));
     }
     if (kindFilter === 'booking' && bookings.data) {
@@ -178,7 +179,7 @@ export function InboxTable() {
         scheduledAt: null,
         car: null,
         services: [],
-        comment: null,
+        comment: r.comment,
       })),
       ...(bookings.data ?? []).map((b) => ({
         kind: 'booking' as const,
