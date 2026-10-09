@@ -28,6 +28,7 @@ import {
 
 const NAME_PATTERN = /^.{2,80}$/s;
 const PHONE_PATTERN = /^[0-9+()\-\s]{9,20}$/;
+const COMMENT_PATTERN = /^.{0,500}$/s;
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 const DUPLICATE = Symbol('duplicate');
 const HOUR_MS = 60 * 60 * 1000;
@@ -55,6 +56,7 @@ export class RequestsService {
   async create(
     name: unknown,
     phone: unknown,
+    comment: unknown,
     clientKey: string,
     idempotencyKey?: string,
   ): Promise<{ id: string; duplicate: boolean }> {
@@ -77,6 +79,11 @@ export class RequestsService {
         'Укажите белорусский мобильный номер: +375 25/29/33/44 и 7 цифр',
       );
     }
+    const cleanComment = typeof comment === 'string' ? comment.trim() : '';
+    if (!COMMENT_PATTERN.test(cleanComment)) {
+      throw new BadRequestException('Комментарий: до 500 символов');
+    }
+    const savedComment = cleanComment.length > 0 ? cleanComment : null;
     if (idempotencyKey !== undefined && !IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey)) {
       throw new BadRequestException('Некорректный Idempotency-Key');
     }
@@ -93,7 +100,7 @@ export class RequestsService {
 
     const created = await this.prisma.request
       .create({
-        data: { name: cleanName, phone: cleanPhone, idempotencyKey },
+        data: { name: cleanName, phone: cleanPhone, comment: savedComment, idempotencyKey },
         select: { id: true },
       })
       .catch(async (error: unknown): Promise<typeof DUPLICATE> => {
@@ -122,13 +129,25 @@ export class RequestsService {
 
     this.notifications.deliver(cleanPhone, formatCallbackConfirmation());
 
-    this.notify(created.id, { name: cleanName, phone: cleanPhone, createdAt: new Date() });
+    this.notify(created.id, {
+      name: cleanName,
+      phone: cleanPhone,
+      comment: savedComment,
+      createdAt: new Date(),
+    });
     return { id: created.id, duplicate: false };
   }
 
-  async list(
-    status?: unknown,
-  ): Promise<Array<{ id: string; name: string; phone: string; status: string; createdAt: Date }>> {
+  async list(status?: unknown): Promise<
+    Array<{
+      id: string;
+      name: string;
+      phone: string;
+      comment: string | null;
+      status: string;
+      createdAt: Date;
+    }>
+  > {
     const filter =
       typeof status === 'string' && (REQUEST_STATUSES as readonly string[]).includes(status)
         ? { status }
@@ -136,7 +155,7 @@ export class RequestsService {
     return this.prisma.request.findMany({
       where: filter,
       orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, phone: true, status: true, createdAt: true },
+      select: { id: true, name: true, phone: true, comment: true, status: true, createdAt: true },
     });
   }
 
@@ -156,6 +175,7 @@ export class RequestsService {
           id: true,
           name: true,
           phone: true,
+          comment: true,
           status: true,
           createdAt: true,
           messages: { select: { id: true, chatId: true, messageId: true } },
@@ -233,7 +253,15 @@ export class RequestsService {
     return sent;
   }
 
-  private notify(id: string, contact: { name: string; phone: string; createdAt: Date }): void {
+  private notify(
+    id: string,
+    contact: {
+      name: string;
+      phone: string;
+      comment: string | null;
+      createdAt: Date;
+    },
+  ): void {
     if (!isTelegramEnabled(this.telegram)) {
       this.logger.warn('Telegram не настроен: TELEGRAM_BOT_TOKEN отсутствует');
       return;
@@ -279,6 +307,7 @@ export class RequestsService {
     id: string;
     name: string;
     phone: string;
+    comment: string | null;
     status: string;
     createdAt: Date;
     messages: RequestMessageRef[];

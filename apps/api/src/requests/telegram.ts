@@ -298,15 +298,18 @@ function formatTime(date: Date): string {
 }
 
 export function formatRequestMessage(
-  request: { name: string; phone: string; createdAt?: Date },
+  request: { name: string; phone: string; comment?: string | null; createdAt?: Date },
   status: RequestStatus = 'new',
 ): string {
   const lines = [
     '🔔 <b>Новая заявка «Перезвоните мне»</b>',
     `Имя: ${escapeHtml(request.name)}`,
     `Телефон: ${prettyPhone(request.phone)}`,
-    `${formatTime(request.createdAt ?? new Date())} (Минск)`,
   ];
+  if (typeof request.comment === 'string' && request.comment.length > 0) {
+    lines.push(`Комментарий: ${escapeHtml(request.comment)}`);
+  }
+  lines.push(`${formatTime(request.createdAt ?? new Date())} (Минск)`);
   if (status !== 'new') {
     lines.push(`— ${STATUS_LABELS[status]}`);
   }

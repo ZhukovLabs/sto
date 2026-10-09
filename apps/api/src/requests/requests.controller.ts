@@ -36,6 +36,13 @@ class CreateRequestBody {
 
   @ApiProperty({
     required: false,
+    example: 'Машину тянет вправо, звоните после 18:00',
+    maxLength: 500,
+  })
+  comment?: string;
+
+  @ApiProperty({
+    required: false,
     description: 'Honeypot-поле: заполнено только ботами',
   })
   company?: string;
@@ -60,6 +67,9 @@ class RequestResponse {
 
   @ApiProperty({ example: '+375 29 123-45-67' })
   phone!: string;
+
+  @ApiProperty({ example: 'Машину тянет вправо, звоните после 18:00', required: false })
+  comment?: string | null;
 
   @ApiProperty({ enum: [...REQUEST_STATUSES] })
   status!: string;
@@ -129,6 +139,7 @@ export class RequestsController {
     const result = await this.requestsService.create(
       body.name,
       body.phone,
+      body.comment,
       clientKey,
       idempotencyKey,
     );
