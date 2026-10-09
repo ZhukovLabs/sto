@@ -113,6 +113,7 @@ export interface RequestRow {
   id: string;
   name: string;
   phone: string;
+  comment: string | null;
   status: string;
   createdAt: string;
 }
@@ -294,6 +295,8 @@ export interface ExceptionWindow {
   enabled: boolean;
   from?: string;
   to?: string;
+  /** Заблокированные вручную слоты HH:MM (только для включённых дней). */
+  blockedTimes?: string[];
 }
 
 export type ExceptionsMap = Record<string, ExceptionWindow>;
@@ -304,6 +307,37 @@ export interface BookingSettings {
   capacity: number;
   schedule: ScheduleMap;
   exceptions: ExceptionsMap;
+}
+
+export type DayOverviewSlotStatus = 'free' | 'booked' | 'blocked';
+
+export interface DayOverviewSlot {
+  time: string;
+  status: DayOverviewSlotStatus;
+  past: boolean;
+  bookingNames: string[];
+}
+
+export interface DayOverview {
+  date: string;
+  enabled: boolean;
+  from?: string;
+  to?: string;
+  slots: DayOverviewSlot[];
+}
+
+export async function apiDayOverview(token: string, date: string): Promise<DayOverview> {
+  const response = await fetch(
+    `${API_URL}/bookings/day-overview?date=${encodeURIComponent(date)}`,
+    {
+      headers: { authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    },
+  );
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as DayOverview;
 }
 
 export async function apiGetBookingSettings(token: string): Promise<BookingSettings> {
@@ -431,4 +465,228 @@ export async function apiGetPaidBudget(token: string): Promise<PaidBudget> {
     throw await parseError(response);
   }
   return (await response.json()) as PaidBudget;
+}
+
+// --- Услуги ---
+
+export const SERVICE_UNITS = ['wheel', 'pcs', 'season'] as const;
+
+export type ServiceUnit = (typeof SERVICE_UNITS)[number];
+
+export const SERVICE_UNIT_LABELS: Record<ServiceUnit, string> = {
+  wheel: 'за колесо',
+  pcs: 'за штуку',
+  season: 'за сезон',
+};
+
+export const GROUP_ICONS = [
+  'scan',
+  'wrench',
+  'disc',
+  'cog',
+  'gauge',
+  'circle',
+  'snowflake',
+] as const;
+
+export type GroupIconKey = (typeof GROUP_ICONS)[number];
+
+export const GROUP_ICON_LABELS: Record<GroupIconKey, string> = {
+  scan: 'Сканер',
+  wrench: 'Гаечный ключ',
+  disc: 'Диск',
+  cog: 'Шестерня',
+  gauge: 'Прибор',
+  circle: 'Колесо',
+  snowflake: 'Снежинка',
+};
+
+export interface ServiceRow {
+  id: string;
+  groupId: string;
+  title: string;
+  description: string;
+  priceFrom: number;
+  priceTo: number | null;
+  unit: ServiceUnit | null;
+  photo: string | null;
+  position: number;
+  isActive: boolean;
+}
+
+export interface ServiceGroupRow {
+  id: string;
+  title: string;
+  icon: GroupIconKey | null;
+  photo: string | null;
+  position: number;
+  isActive: boolean;
+  services: ServiceRow[];
+}
+
+export interface ShowcaseSlotRow {
+  serviceId: string;
+  position: number;
+}
+
+export interface ServicesCatalog {
+  groups: ServiceGroupRow[];
+  showcase: ShowcaseSlotRow[];
+}
+
+export interface ServiceInput {
+  title: string;
+  description: string;
+  priceFrom: number;
+  priceTo?: number | null;
+  unit?: ServiceUnit | null;
+  groupId: string;
+  photo?: string | null;
+  isActive?: boolean;
+}
+
+export interface GroupInput {
+  title: string;
+  icon?: GroupIconKey | null;
+  photo?: string | null;
+  isActive?: boolean;
+}
+
+export async function apiListServices(token: string): Promise<ServicesCatalog> {
+  const response = await fetch(`${API_URL}/services`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as ServicesCatalog;
+}
+
+export async function apiCreateService(token: string, input: ServiceInput): Promise<ServiceRow> {
+  const response = await fetch(`${API_URL}/services`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as ServiceRow;
+}
+
+export async function apiUpdateService(
+  token: string,
+  id: string,
+  patch: Partial<ServiceInput>,
+): Promise<ServiceRow> {
+  const response = await fetch(`${API_URL}/services/${id}`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as ServiceRow;
+}
+
+export async function apiDeleteService(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/services/${id}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) {
+    throw await parseError(response);
+  }
+}
+
+export async function apiCreateGroup(token: string, input: GroupInput): Promise<ServiceGroupRow> {
+  const response = await fetch(`${API_URL}/services/groups`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as ServiceGroupRow;
+}
+
+export async function apiUpdateGroup(
+  token: string,
+  id: string,
+  patch: Partial<GroupInput>,
+): Promise<ServiceGroupRow> {
+  const response = await fetch(`${API_URL}/services/groups/${id}`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as ServiceGroupRow;
+}
+
+export async function apiDeleteGroup(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/services/groups/${id}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) {
+    throw await parseError(response);
+  }
+}
+
+export async function apiReorderGroups(token: string, ids: string[]): Promise<void> {
+  const response = await fetch(`${API_URL}/services/groups/order`, {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+}
+
+export async function apiReorderServices(
+  token: string,
+  groupId: string,
+  ids: string[],
+): Promise<void> {
+  const response = await fetch(`${API_URL}/services/order`, {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ groupId, ids }),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+}
+
+export async function apiUpdateShowcase(token: string, serviceIds: string[]): Promise<void> {
+  const response = await fetch(`${API_URL}/services/showcase`, {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ serviceIds }),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+}
+
+export async function apiUploadPhoto(token: string, file: File): Promise<string> {
+  const form = new FormData();
+  form.append('file', file);
+  const response = await fetch(`${API_URL}/uploads`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  const body = (await response.json()) as { url: string };
+  return body.url;
 }
