@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "create-admin": "nest build && node dist/src/scripts/create-admin.js",
     "seed:services": "nest build && node dist/src/scripts/seed-services.js",
+    "seed:team": "nest build && node dist/src/scripts/seed-team.js",
     "login:telegram": "nest build && node dist/src/scripts/login-telegram.js",
     "test": "vitest run"
   },

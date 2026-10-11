@@ -131,3 +131,18 @@ model ShowcaseSlot {
   service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   position  Int     @default(0)
 }
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  name      String
+  role      String
+  spec      String
+  photo     String?
+  photoAlt  String?
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([position])
+}
