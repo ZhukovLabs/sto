@@ -1,10 +1,14 @@
 import Image from 'next/image';
 import { Button, Container, Heading, Text } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
+import { LogoDisc } from '@/shared/brand/LogoDisc';
 
 export function Hero() {
   return (
-    <section id="hero" className="border-b border-border">
+    <section id="hero" className="relative border-b border-border">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+360px)] overflow-hidden bg-[radial-gradient(90%_100%_at_70%_12%,var(--color-bg-raised)_0%,color-mix(in_oklab,var(--color-bg-raised)_35%,var(--color-bg))_30%,color-mix(in_oklab,var(--color-bg-raised)_10%,var(--color-bg))_55%,var(--color-bg)_85%)]">
+        <LogoDisc className="absolute -right-[140px] -top-[140px] size-[min(560px,85vw)] text-border opacity-35" />
+      </div>
       <Container size="site" className="pb-12 pt-12 lg:pt-16">
         <div className="grid items-start gap-10 lg:grid-cols-[7fr_5fr] lg:gap-12">
           <div className="flex flex-col gap-[30px]">

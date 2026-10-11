@@ -11,11 +11,7 @@ const STEPS = [
   },
   {
     title: 'Смета до ремонта',
-    note: 'перечень работ и цены — до начала работ',
-  },
-  {
-    title: 'Цена зафиксирована',
-    note: 'согласовали сумму — она не меняется',
+    note: 'перечень работ и цены — до начала работ, после согласования сумма не меняется',
   },
   {
     title: 'Ремонт',
@@ -39,28 +35,46 @@ export function How() {
           начала работ, цена после согласования не меняется.
         </Text>
 
-        <ul className="mt-9 divide-y divide-border border-y border-border">
-          {STEPS.map((step, index) => (
-            <li
-              key={step.title}
-              className="grid gap-x-6 gap-y-1 py-5 sm:grid-cols-[auto_1fr] sm:items-baseline"
-            >
-              <Heading
-                variant="stat"
-                font="display"
-                color="accent"
-                className="w-14 text-right leading-none"
+        <ul className="mt-10 border-t border-border">
+          {STEPS.map((step, index) => {
+            const isLast = index === STEPS.length - 1;
+            return (
+              <li
+                key={step.title}
+                className={`group grid gap-x-8 gap-y-1 border-b border-border py-5 pl-5 sm:grid-cols-[auto_1fr] sm:items-center${
+                  isLast
+                    ? ' bg-gradient-to-r from-primary/10 to-transparent shadow-[inset_2px_0_0_0_var(--color-primary)]'
+                    : ''
+                }`}
               >
-                {index + 1}
-              </Heading>
-              <div className="flex flex-col gap-1">
-                <span className="text-lg font-bold uppercase tracking-wide text-content">
-                  {step.title}
-                </span>
-                <span className="text-sm leading-relaxed text-content-muted">{step.note}</span>
-              </div>
-            </li>
-          ))}
+                <Heading
+                  variant="stat"
+                  font="display"
+                  aria-hidden
+                  className={`select-none text-transparent [-webkit-text-stroke:1.5px_var(--num-stroke,var(--color-border))] transition-[-webkit-text-stroke-color]${
+                    isLast
+                      ? ' [--num-stroke:var(--color-primary)]'
+                      : ' group-hover:[--num-stroke:var(--color-primary)]'
+                  }`}
+                >
+                  {String(index + 1).padStart(2, '0')}
+                </Heading>
+                <div className="flex flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <span className="text-lg font-bold uppercase tracking-wide text-content">
+                      {step.title}
+                    </span>
+                    {isLast && (
+                      <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-0.5 font-mono text-mono text-primary">
+                        6 месяцев
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm leading-relaxed text-content-muted">{step.note}</span>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </Container>
     </section>

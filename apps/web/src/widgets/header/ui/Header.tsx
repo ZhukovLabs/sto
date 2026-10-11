@@ -85,7 +85,9 @@ export function Header() {
               <span className="font-mono text-body-lg font-semibold text-content">
                 {phone.pretty}
               </span>
-              <span className="font-mono text-caption text-content-dim">{site.hours.label}</span>
+              <span className="font-mono text-caption uppercase tracking-[0.08em] text-content-dim">
+                {site.hours.label}
+              </span>
             </a>
             <a
               href={`tel:${phone.value}`}
