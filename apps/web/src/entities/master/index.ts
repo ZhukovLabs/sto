@@ -1,5 +1,5 @@
-import { getTeam, getTrustFacts } from './api';
-import type { TeamMember, TrustFact } from './model/types';
+import { getTeam } from './api';
+import type { TeamMember } from './model/types';
 
-export type { TeamMember, TrustFact };
-export { getTeam, getTrustFacts };
+export type { TeamMember };
+export { getTeam };
