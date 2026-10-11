@@ -109,6 +109,20 @@ export default async function AdminHomePage() {
         </Link>
 
         <Link
+          href="/team"
+          className="flex items-center justify-between rounded-xl border border-border bg-panel px-6 py-5 transition-colors hover:border-primary"
+        >
+          <span className="flex flex-col items-start gap-1">
+            <Text variant="body" className="font-semibold">
+              Команда
+            </Text>
+            <Text variant="micro" color="dim" className="font-mono">
+              СОСТАВ · ФОТО · ПОРЯДОК
+            </Text>
+          </span>
+        </Link>
+
+        <Link
           href="/masters"
           className="flex items-center justify-between rounded-xl border border-border bg-panel px-6 py-5 transition-colors hover:border-primary"
         >
