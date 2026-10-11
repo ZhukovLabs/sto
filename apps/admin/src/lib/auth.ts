@@ -24,7 +24,8 @@ export async function requireUser(): Promise<AdminUser> {
     user = null;
   }
   if (user === null) {
-    redirect('/login');
+    // ?expired=1 заставляет middleware выкинуть невалидную cookie и не зациклиться.
+    redirect('/login?expired=1');
   }
   return user;
 }
