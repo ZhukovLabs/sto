@@ -1,4 +1,4 @@
-import { useId, type InputHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useId, type InputHTMLAttributes, type ReactNode } from 'react';
 import {
   FieldCaption,
   FieldLabel,
@@ -25,23 +25,24 @@ const sizeClass: Record<FieldSize, string> = {
   lg: 'h-14 text-body-lg rounded-lg',
 };
 
-const padClass = (left?: ReactNode, right?: ReactNode) => ({
-  'pl-10': Boolean(left),
-  'pr-10': Boolean(right),
-});
+const padClass = (left?: ReactNode, right?: ReactNode) =>
+  [left ? 'pl-10' : '', right ? 'pr-10' : ''].filter(Boolean).join(' ');
 
-export function Input({
-  label,
-  helper,
-  error,
-  size = 'md',
-  leftIcon,
-  rightIcon,
-  className = '',
-  id,
-  required,
-  ...props
-}: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  {
+    label,
+    helper,
+    error,
+    size = 'md',
+    leftIcon,
+    rightIcon,
+    className = '',
+    id,
+    required,
+    ...props
+  },
+  ref,
+) {
   const inputId = id ?? useId();
   const { helperId, errorId } = fieldCaptionIds(inputId);
 
@@ -58,6 +59,7 @@ export function Input({
           </span>
         ) : null}
         <input
+          ref={ref}
           id={inputId}
           required={required}
           aria-invalid={error ? true : undefined}
@@ -84,4 +86,4 @@ export function Input({
       <FieldCaption error={error} helper={helper} errorId={errorId} helperId={helperId} />
     </div>
   );
-}
+});

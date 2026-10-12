@@ -122,7 +122,7 @@ export function ServiceDialog({
       open={open}
       onClose={onClose}
       title={service === null ? 'Новая услуга' : 'Услуга'}
-      size="md"
+      size="xl"
     >
       <div className="flex flex-col gap-4">
         <Input
@@ -150,7 +150,7 @@ export function ServiceDialog({
         <div className="grid grid-cols-2 gap-3">
           <Input
             id="service-price-from"
-            label="Цена от, BYN"
+            label="Цена от, руб."
             inputMode="decimal"
             value={form.priceFrom}
             onChange={(event) => setForm((prev) => ({ ...prev, priceFrom: event.target.value }))}

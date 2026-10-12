@@ -49,38 +49,43 @@ export class NotificationService {
   async getSettings(): Promise<NotificationSettingsView> {
     const row = await this.prisma.notificationSettings.findUnique({
       where: { id: SETTINGS_ID },
-      select: { channelOrder: true },
     });
     if (row === null) {
-      return { channelOrder: DEFAULT_CHANNEL_ORDER };
+      return { channelOrder: DEFAULT_CHANNEL_ORDER, enabled: DEFAULT_CHANNEL_ORDER };
     }
-    return { channelOrder: sanitizeChannels(row.channelOrder) };
+    const order = sanitizeChannels(row.channelOrder);
+    // Старые строки хранили в channelOrder только включённые каналы.
+    const enabled =
+      row.enabledChannels.length > 0
+        ? order.filter((channel) => row.enabledChannels.includes(channel))
+        : order;
+    return {
+      channelOrder: withMissing(order),
+      enabled: enabled.length > 0 ? enabled : order,
+    };
   }
 
-  async updateSettings(channelOrder: unknown): Promise<NotificationSettingsView> {
-    if (!Array.isArray(channelOrder)) {
-      throw new BadRequestException('channelOrder должен быть массивом каналов');
-    }
-    if (channelOrder.length === 0) {
+  async updateSettings(channelOrder: unknown, enabled: unknown): Promise<NotificationSettingsView> {
+    const order = parseChannels(channelOrder, 'channelOrder');
+    const enabledList = parseChannels(enabled, 'enabled');
+    if (enabledList.length === 0) {
       throw new BadRequestException('Оставьте хотя бы один активный канал');
     }
-    const seen = new Set<string>();
-    for (const channel of channelOrder) {
-      if (!CHANNELS.includes(channel as Channel)) {
-        throw new BadRequestException(`Неизвестный канал «${String(channel)}»`);
+    for (const channel of enabledList) {
+      if (!order.includes(channel)) {
+        throw new BadRequestException(`Канал «${channel}» выключен, но отсутствует в порядке`);
       }
-      if (seen.has(channel)) {
-        throw new BadRequestException(`Канал «${channel}» указан дважды`);
-      }
-      seen.add(channel);
     }
+    const fullOrder = withMissing(order);
     const row = await this.prisma.notificationSettings.upsert({
       where: { id: SETTINGS_ID },
-      update: { channelOrder: channelOrder as Channel[] },
-      create: { id: SETTINGS_ID, channelOrder: channelOrder as Channel[] },
-      select: { channelOrder: true },
+      update: { channelOrder: fullOrder, enabledChannels: enabledList },
+      create: { id: SETTINGS_ID, channelOrder: fullOrder, enabledChannels: enabledList },
     });
-    return { channelOrder: sanitizeChannels(row.channelOrder) };
+    return {
+      channelOrder: withMissing(sanitizeChannels(row.channelOrder)),
+      enabled: sanitizeChannels(row.enabledChannels),
+    };
   }
 
   async getSmsBalance(): Promise<SmsBalanceView> {
@@ -143,7 +148,7 @@ export class NotificationService {
       this.logger.warn('Не удалось прочитать настройки уведомлений — доставка пропущена');
       return;
     }
-    for (const channel of settings.channelOrder) {
+    for (const channel of settings.channelOrder.filter((item) => settings.enabled.includes(item))) {
       const sent = await this.tryChannel(channel, phone, text);
       if (sent) {
         return;
@@ -187,6 +192,28 @@ function sanitizeChannels(values: string[]): Channel[] {
     }
   }
   return unique.length > 0 ? unique : DEFAULT_CHANNEL_ORDER;
+}
+
+/** Полный порядок: пропущенные каналы дописываются в конец. */
+function withMissing(order: Channel[]): Channel[] {
+  return [...order, ...CHANNELS.filter((channel) => !order.includes(channel))];
+}
+
+function parseChannels(value: unknown, field: string): Channel[] {
+  if (!Array.isArray(value)) {
+    throw new BadRequestException(`${field} должен быть массивом каналов`);
+  }
+  const seen = new Set<string>();
+  for (const channel of value) {
+    if (!CHANNELS.includes(channel as Channel)) {
+      throw new BadRequestException(`Неизвестный канал «${String(channel)}»`);
+    }
+    if (seen.has(channel)) {
+      throw new BadRequestException(`Канал «${channel}» указан дважды`);
+    }
+    seen.add(channel);
+  }
+  return value as Channel[];
 }
 
 function channelName(channel: Channel): string {

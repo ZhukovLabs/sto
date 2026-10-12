@@ -10,6 +10,7 @@ import { RequestsModule } from './requests/requests.module';
 import { SmsModule } from './sms/sms.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ServicesModule } from './services/services.module';
+import { TeamModule } from './team/team.module';
 import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { UploadsModule } from './uploads/uploads.module';
     MastersModule,
     BookingModule,
     ServicesModule,
+    TeamModule,
     UploadsModule,
   ],
   controllers: [AppController],

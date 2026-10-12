@@ -1,14 +1,35 @@
-import { TEAM, TRUST_FACTS } from './model/mocks';
-import type { TeamMember, TrustFact } from './model/types';
+import { API_URL } from '@/shared/config/api';
+import type { TeamMember } from './model/types';
 
-/**
- * Заглушка контракта команды. При появлении бэкенда -
- * заменить на запрос к API с revalidate.
- */
-export async function getTeam(): Promise<TeamMember[]> {
-  return TEAM;
+interface TeamMemberResponse {
+  name: string;
+  role: string;
+  spec: string;
+  photo: string | null;
+  photoAlt: string | null;
 }
 
-export async function getTrustFacts(): Promise<TrustFact[]> {
-  return TRUST_FACTS;
+/**
+ * Состав команды с @sto/api. Кэш по тегу «team» — сбрасывается из админки.
+ * При недоступности API возвращает пустой список (секция скрыта).
+ */
+export async function getTeam(): Promise<TeamMember[]> {
+  try {
+    const response = await fetch(`${API_URL}/team`, {
+      next: { tags: ['team'], revalidate: 3600 },
+    });
+    if (!response.ok) {
+      return [];
+    }
+    const members = (await response.json()) as TeamMemberResponse[];
+    return members.map((member) => ({
+      name: member.name,
+      role: member.role,
+      spec: member.spec,
+      photo: member.photo ?? undefined,
+      photoAlt: member.photoAlt ?? undefined,
+    }));
+  } catch {
+    return [];
+  }
 }

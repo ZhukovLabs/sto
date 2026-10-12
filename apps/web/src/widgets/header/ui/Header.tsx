@@ -24,7 +24,7 @@ export function Header() {
   const [bookingOpen, setBookingOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 16);
+    const onScroll = () => setScrolled(window.scrollY > 2);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -34,7 +34,7 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-(--z-header) border-b transition-colors duration-200 ${
+      className={`sticky top-0 z-(--z-header) border-b transition-colors duration-150 ${
         transparent
           ? 'border-transparent bg-transparent'
           : 'border-border bg-bg/95 backdrop-blur-md'
@@ -80,12 +80,14 @@ export function Header() {
             </ul>
           </nav>
 
-          <div className="flex shrink-0 items-center justify-self-end gap-4 sm:gap-8">
+          <div className="col-start-3 flex shrink-0 items-center justify-self-end gap-4 sm:gap-8">
             <a href={`tel:${phone.value}`} className="hidden flex-col items-end gap-0.5 md:flex">
               <span className="font-mono text-body-lg font-semibold text-content">
                 {phone.pretty}
               </span>
-              <span className="font-mono text-caption text-content-dim">{site.hours.label}</span>
+              <span className="font-mono text-caption uppercase tracking-[0.08em] text-content-dim">
+                {site.hours.label}
+              </span>
             </a>
             <a
               href={`tel:${phone.value}`}

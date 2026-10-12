@@ -129,6 +129,16 @@ export async function apiListRequests(token: string): Promise<RequestRow[]> {
   return (await response.json()) as RequestRow[];
 }
 
+export async function apiDeleteRequest(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/requests/${id}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) {
+    throw await parseError(response);
+  }
+}
+
 export async function apiCountNewRequests(token: string): Promise<number> {
   const response = await fetch(`${API_URL}/requests/count-new`, {
     headers: { authorization: `Bearer ${token}` },
@@ -253,6 +263,16 @@ export async function apiListBookings(token: string): Promise<BookingRow[]> {
     throw await parseError(response);
   }
   return (await response.json()) as BookingRow[];
+}
+
+export async function apiDeleteBooking(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/bookings/${id}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) {
+    throw await parseError(response);
+  }
 }
 
 export async function apiCountUnconfirmedBookings(token: string): Promise<number> {
@@ -387,6 +407,7 @@ export const NOTIFICATION_CHANNEL_LABELS: Record<NotificationChannel, string> = 
 
 export interface NotificationSettings {
   channelOrder: NotificationChannel[];
+  enabled: NotificationChannel[];
 }
 
 export interface SmsBalance {
@@ -691,4 +712,86 @@ export async function apiUploadPhoto(token: string, file: File): Promise<string>
   }
   const body = (await response.json()) as { url: string };
   return body.url;
+}
+
+export interface TeamMemberRow {
+  id: string;
+  name: string;
+  role: string;
+  spec: string;
+  photo: string | null;
+  photoAlt: string | null;
+  position: number;
+  isActive: boolean;
+}
+
+export interface TeamMemberInput {
+  name: string;
+  role: string;
+  spec: string;
+  photo?: string | null;
+  photoAlt?: string | null;
+}
+
+export async function apiListTeam(token: string): Promise<TeamMemberRow[]> {
+  const response = await fetch(`${API_URL}/team/all`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as TeamMemberRow[];
+}
+
+export async function apiCreateTeamMember(
+  token: string,
+  input: TeamMemberInput,
+): Promise<TeamMemberRow> {
+  const response = await fetch(`${API_URL}/team`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as TeamMemberRow;
+}
+
+export async function apiUpdateTeamMember(
+  token: string,
+  id: string,
+  patch: Partial<TeamMemberInput> & { isActive?: boolean },
+): Promise<TeamMemberRow> {
+  const response = await fetch(`${API_URL}/team/${id}`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as TeamMemberRow;
+}
+
+export async function apiDeleteTeamMember(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/team/${id}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) {
+    throw await parseError(response);
+  }
+}
+
+export async function apiReorderTeam(token: string, ids: string[]): Promise<void> {
+  const response = await fetch(`${API_URL}/team/order`, {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
 }

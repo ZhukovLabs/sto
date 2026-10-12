@@ -25,6 +25,7 @@
 
   --color-bg: #101214;
   --color-bg-deep: #0c0d0f;
+  --color-bg-raised: #262a31;
   --color-panel: #17191d;
   --color-panel-2: #1e2126;
   --color-border: #2a2e34;
@@ -45,6 +46,8 @@
   --color-warning: #f5b301;
   --color-warning-soft: #2b2110;
   --color-danger: #e5484d;
+  --color-danger-hover: #f0575c;
+  --color-danger-active: #d13a3f;
   --color-danger-soft: #2f1517;
 
   --color-focus: #ff8448;
@@ -130,6 +133,7 @@
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.3, 0.5, 1);
+  --ease-snap: cubic-bezier(0.22, 1.15, 0.36, 1);
 
   --animate-shimmer: shimmer 1.8s linear infinite;
   --animate-fade-in: fade-in 0.3s var(--ease-out) both;
@@ -138,7 +142,6 @@
   --animate-modal-out: modal-out 0.2s var(--ease-in) both;
   --animate-sheet-in: sheet-in 0.3s var(--ease-out) both;
   --animate-sheet-out: sheet-out 0.25s var(--ease-in) both;
-  --animate-fade-in: fade-in 0.3s var(--ease-out) both;
   --animate-fade-out: fade-out 0.2s var(--ease-in) both;
   --animate-marquee: marquee 32s linear infinite;
   --animate-line-reveal: line-reveal 0.6s var(--ease-out) both;
@@ -285,4 +288,13 @@
   --shadow-lg: 0 12px 40px rgb(35 39 43 / 0.16);
   --shadow-glow: 0 0 20px rgb(240 81 26 / 0.18);
   --color-overlay: rgb(35 39 43 / 0.45);
+}
+
+/* Мобильная подгонка hero-заголовка от края до края контейнера:
+   самое длинное слово («СЮРПРИЗОВ», ≈8.41em капсартю) = 100vw − 2×16px гаттера.
+   @theme не принимает @media, поэтому переопределяем переменную обычным правилом. */
+@media (max-width: 639px) {
+  :root {
+    --text-display-2xl: calc((100vw - 2rem) / 8.41);
+  }
 }

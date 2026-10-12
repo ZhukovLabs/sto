@@ -81,7 +81,7 @@ export function GroupDialog({ open, onClose, onSaved, group }: GroupDialogProps)
       open={open}
       onClose={onClose}
       title={group === null ? 'Новая группа' : 'Группа'}
-      size="md"
+      size="lg"
     >
       <div className="flex flex-col gap-4">
         <Input

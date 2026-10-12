@@ -6,7 +6,10 @@ const meta = {
   component: Button,
   tags: ['autodocs'],
   argTypes: {
-    variant: { control: 'inline-radio', options: ['primary', 'secondary', 'outline', 'ghost'] },
+    variant: {
+      control: 'inline-radio',
+      options: ['primary', 'secondary', 'outline', 'ghost', 'danger'],
+    },
     size: { control: 'inline-radio', options: ['sm', 'md', 'lg'] },
     loading: { control: 'boolean' },
     fullWidth: { control: 'boolean' },
@@ -32,6 +35,7 @@ export const AllVariants: Story = {
           <Button variant="secondary">Заказать звонок</Button>
           <Button variant="outline">Услуги и цены</Button>
           <Button variant="ghost">Подробнее</Button>
+          <Button variant="danger">Удалить</Button>
           <Button variant="primary" pill>
             Записаться · пилюля
           </Button>

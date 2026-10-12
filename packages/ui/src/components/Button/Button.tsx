@@ -1,7 +1,7 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
 import { Spinner } from '../Spinner/Spinner';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 type ButtonBaseProps = {
@@ -33,6 +33,8 @@ const variantClass: Record<ButtonVariant, string> = {
     'bg-transparent text-content font-medium border border-border hover:border-border-strong hover:bg-panel active:translate-y-px',
   ghost:
     'bg-transparent text-content-muted font-medium hover:text-content hover:bg-panel active:translate-y-px',
+  danger:
+    'bg-danger text-white font-semibold hover:bg-danger-hover active:bg-danger-active active:translate-y-px hover:shadow-md',
 };
 
 const sizeClass: Record<ButtonSize, string> = {

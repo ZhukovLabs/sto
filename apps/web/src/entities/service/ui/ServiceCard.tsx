@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import type { LucideIcon } from 'lucide-react';
 import { ArrowRight, Circle, Cog, Disc, Gauge, ScanLine, Snowflake, Wrench } from 'lucide-react';
-import { BynSign } from '@sto/ui';
 import type { GroupIconKey, Service, ServiceGroup, ServiceUnit } from '../model/types';
 
 const ICONS: Record<GroupIconKey, LucideIcon> = {
@@ -40,7 +39,7 @@ export function PriceByn({ service, className }: { service: Service; className?:
   return (
     <span className={`whitespace-nowrap ${className ?? ''}`}>
       {formatPriceFrom(service)}
-      <BynSign aria-label="белорусских рублей" />
+      {' руб.'}
       {unitShort ? <span className="text-[0.85em] text-content-dim"> {unitShort}</span> : null}
     </span>
   );

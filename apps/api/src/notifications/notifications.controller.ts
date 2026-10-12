@@ -13,9 +13,15 @@ import type {
 export class NotificationSettingsBody implements NotificationSettingsView {
   @ApiProperty({
     example: ['telegram', 'viber', 'sms'],
-    description: 'Каналы подтверждений в порядке попытки доставки',
+    description: 'Все каналы в порядке карточки: выключенные сохраняют своё место',
   })
   channelOrder!: Channel[];
+
+  @ApiProperty({
+    example: ['telegram', 'sms'],
+    description: 'Включённые каналы — участвуют в доставке',
+  })
+  enabled!: Channel[];
 }
 
 @ApiTags('notifications')
@@ -34,7 +40,7 @@ export class NotificationsController {
   @UseGuards(BearerTokenGuard)
   @ApiOperation({ summary: 'Обновить порядок каналов подтверждений' })
   async updateSettings(@Body() body: NotificationSettingsBody): Promise<NotificationSettingsView> {
-    return this.notifications.updateSettings(body.channelOrder);
+    return this.notifications.updateSettings(body.channelOrder, body.enabled);
   }
 
   @Get('notifications/balance')

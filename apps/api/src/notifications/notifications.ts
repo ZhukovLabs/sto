@@ -12,6 +12,7 @@ export const VIBER_PRICE_PROBE = 'Тест';
 
 export interface NotificationSettingsView {
   channelOrder: Channel[];
+  enabled: Channel[];
 }
 
 export interface SmsBalanceView {

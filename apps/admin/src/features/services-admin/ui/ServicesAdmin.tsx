@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -20,8 +20,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { Badge, Button, Tabs, TabsContent, TabsList, TabsTrigger, Text } from '@sto/ui';
+import { EyeOff, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { Badge, Button, Input, Tabs, TabsContent, TabsList, TabsTrigger, Text } from '@sto/ui';
 import {
   SERVICE_UNIT_LABELS,
   readProxyError,
@@ -32,6 +32,7 @@ import {
 import { GroupDialog } from './GroupDialog';
 import { ServiceDialog } from './ServiceDialog';
 import { ShowcaseTab } from './ShowcaseTab';
+import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 
 const GROUP_PREFIX = 'group:';
 
@@ -77,18 +78,24 @@ function DragHandle(): React.JSX.Element {
   );
 }
 
-function SortableGroupHeader({
+function servicePlural(count: number): string {
+  const last = count % 10;
+  const lastTwo = count % 100;
+  if (last === 1 && lastTwo !== 11) return 'услуга';
+  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return 'услуги';
+  return 'услуг';
+}
+
+function SortableGroupListItem({
   group,
   index,
-  onEdit,
-  onDelete,
-  onAddService,
+  active,
+  onSelect,
 }: {
   group: ServiceGroupRow;
   index: number;
-  onEdit: () => void;
-  onDelete: () => void;
-  onAddService: () => void;
+  active: boolean;
+  onSelect: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `${GROUP_PREFIX}${group.id}`,
@@ -96,77 +103,75 @@ function SortableGroupHeader({
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex flex-wrap items-center gap-3 transition-opacity ${
+      data-sortable-id={`${GROUP_PREFIX}${group.id}`}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition: [transition, 'opacity 140ms ease'].filter(Boolean).join(', '),
+      }}
+      className={`group/item relative flex items-center gap-1 rounded-lg ${
         isDragging ? 'opacity-0' : 'opacity-100'
       }`}
     >
       <button
         type="button"
-        aria-label="Порядок группы"
-        className="flex size-7 cursor-grab touch-none items-center justify-center rounded text-content-dim hover:text-content active:cursor-grabbing"
+        aria-label={`Порядок группы «${group.title}»`}
+        className="flex size-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-content-dim opacity-0 transition-opacity hover:text-content focus-visible:opacity-100 active:cursor-grabbing group-hover/item:opacity-100"
         {...attributes}
         {...listeners}
       >
-        <DragHandle />
+        <span className="font-mono text-caption leading-none">⠿</span>
       </button>
-      <span className="w-4 font-mono text-caption text-content-dim">{index + 1}</span>
-      <h3 className="font-mono text-base font-bold uppercase tracking-[0.08em] text-content">
-        {group.title}
-      </h3>
-      <span className="font-mono text-caption uppercase tracking-[0.08em] text-content-dim">
-        {group.services.length}
-      </span>
-      {!group.isActive ? <Badge variant="neutral">скрыта</Badge> : null}
-      <span aria-hidden="true" className="h-px min-w-6 flex-1 bg-border" />
-      <Button variant="ghost" size="sm" onClick={onAddService}>
-        <Plus className="size-3.5" aria-hidden="true" />
-        Услуга
-      </Button>
-      <Button variant="outline" size="sm" onClick={onEdit}>
-        <Pencil className="size-3.5" aria-hidden="true" />
-        Изменить
-      </Button>
-      <Button variant="ghost" size="sm" onClick={onDelete}>
-        Удалить
-      </Button>
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-current={active ? 'true' : undefined}
+        className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-3 py-2.5 text-left transition-colors motion-reduce:transition-none ${
+          active
+            ? 'bg-panel-2 text-content shadow-[inset_2px_0_0_0_var(--color-primary)]'
+            : 'text-content-muted hover:bg-panel-2/60 hover:text-content'
+        }`}
+      >
+        <span className="w-4 shrink-0 font-mono text-caption text-content-dim">{index + 1}</span>
+        <span className="min-w-0 flex-1 truncate font-mono text-caption uppercase tracking-[0.06em]">
+          {group.title}
+        </span>
+        {group.isActive ? null : (
+          <EyeOff className="size-3.5 shrink-0 text-content-dim" aria-hidden="true" />
+        )}
+        <span
+          className={`shrink-0 rounded-full px-1.5 py-0.5 font-mono text-micro leading-none ${
+            active ? 'bg-primary/15 text-primary' : 'bg-panel-2 text-content-dim'
+          }`}
+        >
+          {group.services.length}
+        </span>
+      </button>
     </div>
   );
 }
 
-function SortableServiceRow({
+function ServiceRowInner({
   service,
   index,
+  handle,
   onEdit,
   onDelete,
   deleting,
 }: {
   service: ServiceRow;
   index: number;
+  handle: React.ReactNode;
   onEdit: () => void;
   onDelete: () => void;
   deleting: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: service.id,
-  });
   return (
     <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`grid grid-cols-[auto_auto_1fr_auto] items-center gap-3 px-2 py-2.5 transition-opacity sm:grid-cols-[auto_auto_auto_1fr_auto_auto_auto_auto] ${
-        isDragging ? 'opacity-0' : 'opacity-100 hover:bg-panel-2/60'
-      } ${service.isActive ? '' : 'opacity-60'}`}
+      className={`grid grid-cols-[auto_auto_1fr_auto] items-center gap-3 px-2 py-3 hover:bg-panel-2/60 sm:grid-cols-[auto_auto_auto_1fr_auto_auto_auto_auto] ${
+        service.isActive ? '' : 'opacity-60'
+      }`}
     >
-      <button
-        type="button"
-        aria-label="Порядок услуги"
-        className="flex size-7 cursor-grab touch-none items-center justify-center rounded text-content-dim hover:text-content active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
-      >
-        <DragHandle />
-      </button>
+      {handle}
       <span className="w-4 font-mono text-caption text-content-dim">{index + 1}</span>
       {service.photo !== null ? (
         <img
@@ -184,7 +189,7 @@ function SortableServiceRow({
         </span>
       </span>
       <span className="hidden whitespace-nowrap font-mono text-caption text-content sm:block">
-        {priceLabel(service)} BYN
+        {priceLabel(service)} руб.
       </span>
       {!service.isActive ? (
         <span className="hidden sm:inline-flex">
@@ -212,23 +217,50 @@ function SortableServiceRow({
   );
 }
 
-function ServiceCard({ service }: { service: ServiceRow }): React.JSX.Element {
+function SortableServiceRow({
+  service,
+  index,
+  onEdit,
+  onDelete,
+  deleting,
+}: {
+  service: ServiceRow;
+  index: number;
+  onEdit: () => void;
+  onDelete: () => void;
+  deleting: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: service.id,
+  });
   return (
-    <div className="flex cursor-grabbing items-center gap-3 rounded-lg border border-border bg-panel-2 px-4 py-3 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.55)]">
-      <DragHandle />
-      <span className="text-body font-semibold text-content">{service.title}</span>
-      <span className="font-mono text-caption text-content-dim">{priceLabel(service)} BYN</span>
-    </div>
-  );
-}
-
-function GroupCard({ group }: { group: ServiceGroupRow }): React.JSX.Element {
-  return (
-    <div className="flex cursor-grabbing items-center gap-3 rounded-lg border border-border bg-panel-2 px-4 py-3 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.55)]">
-      <DragHandle />
-      <span className="font-mono text-base font-bold uppercase tracking-[0.08em] text-content">
-        {group.title}
-      </span>
+    <div
+      ref={setNodeRef}
+      data-sortable-id={service.id}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition: [transition, 'opacity 140ms ease'].filter(Boolean).join(', '),
+      }}
+      className={isDragging ? 'opacity-0' : 'opacity-100'}
+    >
+      <ServiceRowInner
+        service={service}
+        index={index}
+        handle={
+          <button
+            type="button"
+            aria-label="Порядок услуги"
+            className="flex size-7 cursor-grab touch-none items-center justify-center rounded text-content-dim hover:text-content active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+          >
+            <DragHandle />
+          </button>
+        }
+        onEdit={onEdit}
+        onDelete={onDelete}
+        deleting={deleting}
+      />
     </div>
   );
 }
@@ -252,7 +284,11 @@ export function ServicesAdmin() {
   const [deletingService, setDeletingService] = useState(false);
   const [deletingGroup, setDeletingGroup] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
-  const [dragging, setDragging] = useState<{ kind: 'group' | 'service'; id: string } | null>(null);
+  const [dragging, setDragging] = useState<{
+    kind: 'group' | 'service';
+    id: string;
+    width: number;
+  } | null>(null);
 
   const invalidate = (): void => {
     void queryClient.invalidateQueries({ queryKey: ['admin-services'] });
@@ -277,9 +313,40 @@ export function ServicesAdmin() {
 
   const groups = catalog.data?.groups ?? [];
 
+  const [query, setQuery] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const normalizedQuery = query.trim().toLowerCase();
+  const searching = normalizedQuery !== '';
+
+  const filteredGroups = useMemo(() => {
+    if (!searching) return groups;
+    return groups
+      .map((group) => ({
+        ...group,
+        services: group.services.filter(
+          (service) =>
+            service.title.toLowerCase().includes(normalizedQuery) ||
+            service.description.toLowerCase().includes(normalizedQuery),
+        ),
+      }))
+      .filter(
+        (group) => group.services.length > 0 || group.title.toLowerCase().includes(normalizedQuery),
+      );
+  }, [groups, normalizedQuery, searching]);
+
+  const selectedGroup = useMemo(() => {
+    const found = groups.find((group) => group.id === selectedGroupId);
+    return found ?? groups[0] ?? null;
+  }, [groups, selectedGroupId]);
+
   const onDragStart = (event: DragStartEvent): void => {
     const id = String(event.active.id);
-    setDragging(id.startsWith(GROUP_PREFIX) ? { kind: 'group', id } : { kind: 'service', id });
+    const node = document.querySelector(`[data-sortable-id="${id}"]`);
+    setDragging({
+      kind: id.startsWith(GROUP_PREFIX) ? 'group' : 'service',
+      id,
+      width: node ? node.getBoundingClientRect().width : 0,
+    });
   };
 
   const onDragEnd = async (event: DragEndEvent): Promise<void> => {
@@ -420,74 +487,272 @@ export function ServicesAdmin() {
         </TabsList>
 
         <TabsContent value="catalog">
-          <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between gap-4">
-              <Text color="dim">
-                Порядок групп и услуг меняется перетаскиванием за «⠿» и сохраняется сразу.
-              </Text>
-              <Button
-                variant="outline"
+          <div className="flex flex-col gap-5">
+            <div className="relative w-full sm:max-w-64">
+              <Input
                 size="sm"
-                onClick={() => setGroupDialog({ open: true, group: null })}
-              >
-                <Plus className="size-3.5" aria-hidden="true" />
-                Группа
-              </Button>
+                leftIcon={<Search className="size-4" aria-hidden="true" />}
+                placeholder="Поиск услуги"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                aria-label="Поиск услуги"
+                className="w-full"
+              />
+              {query !== '' ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Очистить поиск"
+                  className="absolute right-2.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-content-dim transition-colors hover:bg-panel-2 hover:text-content"
+                >
+                  <X className="size-3.5" aria-hidden="true" />
+                </button>
+              ) : null}
             </div>
 
             <DndContext
+              id="services-order"
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragStart={onDragStart}
               onDragEnd={(event) => void onDragEnd(event)}
               onDragCancel={() => setDragging(null)}
             >
-              <SortableContext items={groups.map((group) => `${GROUP_PREFIX}${group.id}`)}>
-                <div className="flex flex-col gap-6">
-                  {groups.map((group, index) => (
-                    <section
-                      key={group.id}
-                      className="flex flex-col gap-3 rounded-xl border border-border bg-panel p-5"
-                    >
-                      <SortableGroupHeader
-                        group={group}
-                        index={index}
-                        onEdit={() => setGroupDialog({ open: true, group })}
-                        onDelete={() => setConfirmGroup(group)}
-                        onAddService={() =>
-                          setServiceDialog({ open: true, service: null, groupId: group.id })
-                        }
-                      />
-                      <SortableContext items={group.services.map((service) => service.id)}>
-                        <div className="flex flex-col divide-y divide-border">
-                          {group.services.map((service, serviceIndex) => (
-                            <SortableServiceRow
-                              key={service.id}
-                              service={service}
-                              index={serviceIndex}
-                              deleting={deletingService && confirmService?.id === service.id}
-                              onEdit={() =>
-                                setServiceDialog({ open: true, service, groupId: group.id })
-                              }
-                              onDelete={() => setConfirmService(service)}
-                            />
-                          ))}
-                          {group.services.length === 0 ? (
-                            <Text variant="caption" color="dim" className="px-2 py-3">
-                              В группе пока нет услуг.
-                            </Text>
-                          ) : null}
-                        </div>
-                      </SortableContext>
-                    </section>
-                  ))}
+              <div className="grid items-start gap-6 lg:grid-cols-[264px_1fr] lg:gap-8">
+                <aside className="hidden lg:block">
+                  <div className="sticky top-20 flex flex-col gap-1.5">
+                    <span className="px-1 pb-1 font-mono text-micro uppercase tracking-[0.14em] text-content-dim">
+                      Группы
+                    </span>
+                    <SortableContext items={groups.map((group) => `${GROUP_PREFIX}${group.id}`)}>
+                      {groups.map((group, index) => (
+                        <SortableGroupListItem
+                          key={group.id}
+                          group={group}
+                          index={index}
+                          active={selectedGroup?.id === group.id && !searching}
+                          onSelect={() => setSelectedGroupId(group.id)}
+                        />
+                      ))}
+                    </SortableContext>
+                    <div className="mt-2 border-t border-border pt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setGroupDialog({ open: true, group: null })}
+                      >
+                        <Plus className="size-3.5" aria-hidden="true" />
+                        Группа
+                      </Button>
+                    </div>
+                  </div>
+                </aside>
+
+                <div className="scroll-slim -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:hidden">
+                  {groups.map((group) => {
+                    const active = group.id === selectedGroup?.id && !searching;
+                    return (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => setSelectedGroupId(group.id)}
+                        aria-current={active ? 'true' : undefined}
+                        className={`shrink-0 rounded-full border px-3.5 py-1.5 font-mono text-caption uppercase tracking-[0.08em] transition-colors motion-reduce:transition-none ${
+                          active
+                            ? 'border-primary bg-primary text-primary-ink'
+                            : 'border-border bg-panel text-content-muted hover:border-border-strong hover:text-content'
+                        }`}
+                      >
+                        {group.title}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setGroupDialog({ open: true, group: null })}
+                    className="shrink-0 rounded-full border border-dashed border-border-strong px-3.5 py-1.5 font-mono text-caption uppercase tracking-[0.08em] text-content-dim transition-colors hover:border-primary hover:text-primary"
+                  >
+                    + Группа
+                  </button>
                 </div>
-              </SortableContext>
-              <DragOverlay dropAnimation={null}>
-                {overlayGroup !== undefined ? (
-                  <GroupCard group={overlayGroup} />
-                ) : overlayService !== undefined ? (
-                  <ServiceCard service={overlayService} />
+
+                {searching ? (
+                  <div className="flex min-w-0 flex-col gap-3">
+                    {filteredGroups.length === 0 ? (
+                      <Text variant="body" color="muted" className="py-10 text-center">
+                        По запросу «{query.trim()}» ничего не нашлось.
+                      </Text>
+                    ) : (
+                      filteredGroups.map((group) => (
+                        <div key={group.id}>
+                          <span className="mb-1.5 block px-1 font-mono text-micro uppercase tracking-[0.14em] text-content-dim">
+                            {group.title} · {group.services.length}
+                          </span>
+                          <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-panel p-2">
+                            {group.services.map((service, serviceIndex) => (
+                              <ServiceRowInner
+                                key={service.id}
+                                service={service}
+                                index={serviceIndex}
+                                handle={<span aria-hidden className="size-7" />}
+                                onEdit={() =>
+                                  setServiceDialog({ open: true, service, groupId: group.id })
+                                }
+                                onDelete={() => setConfirmService(service)}
+                                deleting={deletingService && confirmService?.id === service.id}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : selectedGroup === null ? (
+                  <div className="rounded-xl border border-dashed border-border-strong px-6 py-12 text-center">
+                    <Text variant="body" color="muted">
+                      Групп пока нет — создайте первую.
+                    </Text>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="mt-4"
+                      onClick={() => setGroupDialog({ open: true, group: null })}
+                    >
+                      <Plus className="size-3.5" aria-hidden="true" />
+                      Группа
+                    </Button>
+                  </div>
+                ) : (
+                  <section className="flex min-w-0 flex-col gap-5 rounded-xl border border-border bg-panel p-6 sm:p-7">
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
+                      <h3 className="font-mono text-base font-bold uppercase tracking-[0.08em] text-content">
+                        {selectedGroup.title}
+                      </h3>
+                      <span className="font-mono text-caption uppercase tracking-[0.08em] text-content-muted">
+                        {selectedGroup.services.length}{' '}
+                        {servicePlural(selectedGroup.services.length)}
+                      </span>
+                      {!selectedGroup.isActive ? <Badge variant="neutral">скрыта</Badge> : null}
+                      <span className="ml-auto flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setGroupDialog({ open: true, group: selectedGroup })}
+                          aria-label={`Изменить группу «${selectedGroup.title}»`}
+                        >
+                          <Pencil className="size-3.5" aria-hidden="true" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-danger hover:bg-danger/10"
+                          onClick={() => setConfirmGroup(selectedGroup)}
+                          aria-label={`Удалить группу «${selectedGroup.title}»`}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden="true" />
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() =>
+                            setServiceDialog({
+                              open: true,
+                              service: null,
+                              groupId: selectedGroup.id,
+                            })
+                          }
+                        >
+                          <Plus className="size-3.5" aria-hidden="true" />
+                          Услуга
+                        </Button>
+                      </span>
+                    </div>
+
+                    <SortableContext items={selectedGroup.services.map((service) => service.id)}>
+                      <div className="flex flex-col divide-y divide-border">
+                        {selectedGroup.services.map((service, serviceIndex) => (
+                          <SortableServiceRow
+                            key={service.id}
+                            service={service}
+                            index={serviceIndex}
+                            deleting={deletingService && confirmService?.id === service.id}
+                            onEdit={() =>
+                              setServiceDialog({
+                                open: true,
+                                service,
+                                groupId: selectedGroup.id,
+                              })
+                            }
+                            onDelete={() => setConfirmService(service)}
+                          />
+                        ))}
+                        {selectedGroup.services.length === 0 ? (
+                          <Text variant="caption" color="dim" className="px-2 py-4 text-center">
+                            В группе пока нет услуг — добавьте первую.
+                          </Text>
+                        ) : null}
+                      </div>
+                    </SortableContext>
+                  </section>
+                )}
+              </div>
+              <DragOverlay
+                dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }}
+              >
+                {overlayGroup !== undefined && dragging !== null ? (
+                  <div
+                    className="pointer-events-none flex animate-fade-in items-center gap-1 rounded-lg border border-border-strong bg-panel-2 px-1 py-0.5 text-content shadow-[inset_2px_0_0_0_var(--color-primary),0_24px_48px_-12px_rgba(0,0,0,0.7)]"
+                    style={{ width: dragging.width }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex size-6 shrink-0 items-center justify-center font-mono text-caption text-content-dim"
+                    >
+                      ⠿
+                    </span>
+                    <span className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-3 py-2.5">
+                      <span className="w-4 shrink-0 font-mono text-caption text-content-dim">
+                        {groups.findIndex((group) => group.id === overlayGroup.id) + 1}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-mono text-caption uppercase tracking-[0.06em]">
+                        {overlayGroup.title}
+                      </span>
+                      {overlayGroup.isActive ? null : (
+                        <EyeOff className="size-3.5 shrink-0 text-content-dim" aria-hidden="true" />
+                      )}
+                      <span className="shrink-0 rounded-full bg-primary/15 px-1.5 py-0.5 font-mono text-micro leading-none text-primary">
+                        {overlayGroup.services.length}
+                      </span>
+                    </span>
+                  </div>
+                ) : overlayService !== undefined && dragging !== null ? (
+                  <div
+                    className="pointer-events-none animate-fade-in rounded-lg border border-border-strong bg-panel shadow-[0_24px_48px_-12px_rgba(0,0,0,0.7)]"
+                    style={{ width: dragging.width }}
+                  >
+                    <ServiceRowInner
+                      service={overlayService}
+                      index={
+                        groups
+                          .find((group) =>
+                            group.services.some((service) => service.id === overlayService.id),
+                          )
+                          ?.services.findIndex((service) => service.id === overlayService.id) ?? 0
+                      }
+                      handle={
+                        <span
+                          aria-hidden="true"
+                          className="flex size-7 items-center justify-center font-mono text-caption text-content-dim"
+                        >
+                          ⠿
+                        </span>
+                      }
+                      onEdit={() => {}}
+                      onDelete={() => {}}
+                      deleting={false}
+                    />
+                  </div>
                 ) : null}
               </DragOverlay>
             </DndContext>
@@ -521,53 +786,23 @@ export function ServicesAdmin() {
         group={groupDialog.group}
       />
 
-      {confirmService !== null ? (
-        <ConfirmBar
-          text={`Удалить «${confirmService.title}»? Отменить будет нельзя.`}
-          pending={deletingService}
-          onConfirm={() => void deleteService()}
-          onCancel={() => setConfirmService(null)}
-        />
-      ) : null}
+      <ConfirmDialog
+        open={confirmService !== null}
+        title="Удалить услугу?"
+        description={`«${confirmService?.title ?? ''}» будет удалена безвозвратно. Отменить будет нельзя.`}
+        loading={deletingService}
+        onConfirm={() => void deleteService()}
+        onCancel={() => setConfirmService(null)}
+      />
 
-      {confirmGroup !== null ? (
-        <ConfirmBar
-          text={`Удалить группу «${confirmGroup.title}» и её услуги (${confirmGroup.services.length})?`}
-          pending={deletingGroup}
-          onConfirm={() => void deleteGroup()}
-          onCancel={() => setConfirmGroup(null)}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function ConfirmBar({
-  text,
-  pending,
-  onConfirm,
-  onCancel,
-}: {
-  text: string;
-  pending: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div
-      role="alertdialog"
-      aria-label="Подтверждение удаления"
-      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/40 bg-panel px-4 py-3"
-    >
-      <Text variant="body">{text}</Text>
-      <div className="flex gap-2">
-        <Button variant="ghost" size="sm" onClick={onCancel}>
-          Отмена
-        </Button>
-        <Button variant="primary" size="sm" loading={pending} onClick={onConfirm}>
-          Точно удалить
-        </Button>
-      </div>
+      <ConfirmDialog
+        open={confirmGroup !== null}
+        title="Удалить группу?"
+        description={`Группа «${confirmGroup?.title ?? ''}» и её услуги (${confirmGroup?.services.length ?? 0}) будут удалены безвозвратно.`}
+        loading={deletingGroup}
+        onConfirm={() => void deleteGroup()}
+        onCancel={() => setConfirmGroup(null)}
+      />
     </div>
   );
 }

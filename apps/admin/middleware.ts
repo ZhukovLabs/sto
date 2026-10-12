@@ -27,6 +27,13 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return NextResponse.next();
   }
 
+  const dropSession = (url: string, keepPath = false): NextResponse => {
+    const next = keepPath ? NextResponse.next() : NextResponse.redirect(new URL(url, request.url));
+    next.cookies.delete(SESSION_COOKIE);
+    next.cookies.delete(REMEMBER_COOKIE);
+    return next;
+  };
+
   if (token === undefined || token === '') {
     if (isPublic) {
       return NextResponse.next();
@@ -38,14 +45,28 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   if (isPublic) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    url.search = '';
-    return NextResponse.redirect(url);
+    // Принудительный вход (токен отклонён страницей): чистим cookie и показываем логин,
+    // иначе редирект /login -> / зациклится с протухшей сессией.
+    if (request.nextUrl.searchParams.get('expired') === '1') {
+      return dropSession('/login', true);
+    }
+    const exp = decodeSessionExp(token);
+    const fresh = exp !== null && exp > Math.floor(Date.now() / 1000);
+    if (fresh) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+    return dropSession('/login', true);
+  }
+
+  const exp = decodeSessionExp(token);
+  if (exp !== null && exp <= Math.floor(Date.now() / 1000)) {
+    return dropSession('/login?expired=1');
   }
 
   // Скользящее продление: когда до конца сессии меньше шести дней.
-  const exp = decodeSessionExp(token);
   if (exp !== null && exp - Math.floor(Date.now() / 1000) < 6 * 24 * 60 * 60) {
     const refreshed = await apiRefresh(token).catch(() => null);
     if (refreshed !== null) {
@@ -60,5 +81,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Статика (прокси-картинки /uploads, /services/photos, /master) не должна
+  // попадать в auth-редиректы, иначе <img> получает HTML логина.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|uploads/|services/photos/|master/).*)'],
 };

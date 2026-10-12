@@ -1,17 +1,20 @@
 import Image from 'next/image';
 import { Button, Container, Heading, Text } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
-import { site } from '@/shared/config/site';
+import { LogoDisc } from '@/shared/brand/LogoDisc';
 
 export function Hero() {
   return (
-    <section id="hero" className="border-b border-border">
+    <section id="hero" className="relative border-b border-border">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+360px)] overflow-hidden bg-[radial-gradient(90%_100%_at_70%_12%,var(--color-bg-raised)_0%,color-mix(in_oklab,var(--color-bg-raised)_35%,var(--color-bg))_30%,color-mix(in_oklab,var(--color-bg-raised)_10%,var(--color-bg))_55%,var(--color-bg)_85%)]">
+        <LogoDisc className="absolute -right-[140px] -top-[140px] size-[min(560px,85vw)] text-border opacity-35" />
+      </div>
       <Container size="site" className="pb-12 pt-12 lg:pt-16">
         <div className="grid items-start gap-10 lg:grid-cols-[7fr_5fr] lg:gap-12">
           <div className="flex flex-col gap-[30px]">
             <Heading variant="display-2xl" font="display" className="uppercase">
               <span className="block overflow-hidden pb-[0.08em]">
-                <span className="block animate-line-reveal [animation-delay:80ms] motion-reduce:animate-none">
+                <span className="block animate-line-reveal [animation-delay:80ms] [word-spacing:0.18em] motion-reduce:animate-none">
                   Ремонт <span className="text-primary">без</span>
                 </span>
               </span>
@@ -23,20 +26,14 @@ export function Hero() {
             </Heading>
 
             <Text
-              variant="mono"
-              color="dim"
-              className="animate-rise [animation-delay:260ms] tracking-[0.06em] motion-reduce:animate-none"
-            >
-              {site.city.toUpperCase()} · ОТКРЫВАЕМСЯ В НОЯБРЕ
-            </Text>
-
-            <Text
               variant="body-lg"
               color="muted"
-              className="max-w-[520px] animate-rise [animation-delay:320ms] motion-reduce:animate-none"
+              className="max-w-[552px] text-balance animate-rise [animation-delay:260ms] motion-reduce:animate-none"
             >
-              Диагностика, обслуживание, мелкий и средний ремонт. Первым 20 клиентам — диагностика
-              подвески бесплатно. Окончательную цену называем до начала работ — и она не меняется.
+              <span className="text-primary">Автосервис в Гомеле</span>: замена масла,{' '}
+              <span className="text-primary">ремонт двигателя, тормозов и подвески</span>. Смету
+              считаем, прежде чем тронуть машину. Нашли то, чего нет в смете? Сначала спросим вас.
+              Молчаливых доплат не будет.
             </Text>
 
             <div className="flex animate-rise flex-col items-stretch gap-3 [animation-delay:380ms] sm:flex-row sm:flex-wrap sm:items-center sm:gap-3.5 motion-reduce:animate-none">

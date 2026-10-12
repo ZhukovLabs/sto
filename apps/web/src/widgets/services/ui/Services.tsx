@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { BynSign, Container, Heading } from '@/shared/ui';
+import { Container, Heading } from '@/shared/ui';
 import { getServiceCatalog, PriceByn, ServiceCard } from '@/entities/service';
 import type { CatalogGroup } from '@/entities/service';
 
@@ -127,7 +127,7 @@ function FeaturedCard({ item, className }: { item: ShowcaseItem; className?: str
         </>
       ) : null}
       <span className="relative inline-flex w-fit items-center gap-1.5 rounded-sm bg-primary px-2 py-1 font-mono text-caption font-bold uppercase tracking-normal text-primary-ink max-sm:self-start sm:absolute sm:top-4 sm:right-4">
-        Первым 20 — 0<BynSign aria-label="белорусских рублей" />
+        Первым 20 — 0{' руб.'}
       </span>
       <span className="relative text-xl font-bold leading-[1.2]">{featured.title}</span>
       <span className="relative text-sm leading-normal text-content-muted">

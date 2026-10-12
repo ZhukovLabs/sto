@@ -7,11 +7,3 @@ export interface TeamMember {
   photo?: string;
   photoAlt?: string;
 }
-
-export interface TrustFact {
-  value: string;
-  /** Мелкий суффикс рядом с цифрой: «мес.» */
-  unit?: string;
-  title: string;
-  note: string;
-}

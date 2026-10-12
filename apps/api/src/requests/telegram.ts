@@ -185,6 +185,28 @@ export async function compactRequestMessages(
   });
 }
 
+/**
+ * Удаляет сообщения из Telegram по ссылкам (best-effort): клиентские ошибки
+ * Bot API («сообщение не найдено» и т.п.) игнорируются, сетевые — пробрасываются.
+ */
+export async function deleteTelegramMessages(
+  config: TelegramConfig,
+  messages: RequestMessageRef[],
+): Promise<void> {
+  for (const ref of messages) {
+    try {
+      await telegramApi(config, 'deleteMessage', {
+        chat_id: chatIdPayload(ref.chatId),
+        message_id: ref.messageId,
+      });
+    } catch (error: unknown) {
+      if (!isClientError(error)) {
+        throw error;
+      }
+    }
+  }
+}
+
 export interface TelegramUpdate {
   update_id: number;
   callback_query?: {

@@ -101,3 +101,33 @@ export const Multiple: Story = {
     );
   },
 };
+
+export const FitAuto: Story = {
+  render: () => {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <Select
+            fit="auto"
+            size="sm"
+            options={[
+              { value: 'all', label: 'Все' },
+              { value: 'new', label: 'Новые' },
+              { value: 'cancelled', label: 'Отменённые' },
+            ]}
+            aria-label="Компактный фильтр"
+          />
+        </div>
+        <div className="h-10 w-96 rounded-md border border-dashed border-border" />
+      </div>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'fit="auto" — ширина по содержимому: для тулбаров и фильтров. Пунктирная рамка показывает, что селект не растягивается на весь контейнер.',
+      },
+    },
+  },
+};

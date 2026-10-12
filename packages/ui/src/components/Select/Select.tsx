@@ -6,9 +6,11 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
   type SelectHTMLAttributes,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FieldCaption,
   FieldLabel,
@@ -28,13 +30,14 @@ interface SelectBaseProps extends Omit<
   'children' | 'size' | 'onChange' | 'value'
 > {
   options: SelectOption[];
-  label?: string;
+  label?: ReactNode;
   helper?: ReactNode;
   error?: ReactNode;
   placeholder?: string;
   size?: FieldSize;
   name?: string;
   multiple?: boolean;
+  fit?: 'full' | 'auto';
 }
 
 export interface SelectSingleProps extends SelectBaseProps {
@@ -81,6 +84,7 @@ export function Select({
   disabled,
   name,
   multiple = false,
+  fit = 'full',
   ...props
 }: SelectProps) {
   const selectId = id ?? useId();
@@ -112,7 +116,9 @@ export function Select({
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const [thumb, setThumb] = useState<{ size: number; pos: number } | null>(null);
+  const [popupStyle, setPopupStyle] = useState<CSSProperties | null>(null);
 
   const measureThumb = () => {
     const el = listRef.current;
@@ -135,6 +141,24 @@ export function Select({
     if (open) measureThumb();
   }, [open, options.length]);
 
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const estHeight = Math.min(264, Math.max(options.length, placeholder ? 1 : 0) * 40 + 20);
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const flipUp = spaceBelow < estHeight + 16 && rect.top > spaceBelow;
+    setPopupStyle(
+      flipUp
+        ? {
+            position: 'fixed',
+            left: rect.left,
+            width: rect.width,
+            bottom: window.innerHeight - rect.top + 8,
+          }
+        : { position: 'fixed', left: rect.left, width: rect.width, top: rect.bottom + 8 },
+    );
+  }, [open, options.length, placeholder]);
+
   const selectableIndexes = options
     .map((option, index) => (option.disabled ? -1 : index))
     .filter((index) => index >= 0);
@@ -143,10 +167,33 @@ export function Select({
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (
+        rootRef.current &&
+        !rootRef.current.contains(target) &&
+        !(popupRef.current && popupRef.current.contains(target))
+      ) {
+        setOpen(false);
+      }
+    };
+    const closePositioned = (event: Event) => {
+      if (
+        popupRef.current &&
+        event.target instanceof Node &&
+        popupRef.current.contains(event.target)
+      ) {
+        return;
+      }
+      setOpen(false);
     };
     document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
+    document.addEventListener('scroll', closePositioned, { capture: true, passive: true });
+    window.addEventListener('resize', closePositioned);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('scroll', closePositioned, { capture: true });
+      window.removeEventListener('resize', closePositioned);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -269,7 +316,7 @@ export function Select({
   return (
     <div
       ref={rootRef}
-      className="relative flex w-full min-w-40 flex-col gap-2"
+      className={`relative flex ${fit === 'auto' ? 'w-auto' : 'w-full'} min-w-40 flex-col gap-2`}
       onKeyDown={onKeyDown}
       {...props}
     >
@@ -277,7 +324,7 @@ export function Select({
       {name && value !== undefined ? (
         <input type="hidden" name={name} value={Array.isArray(value) ? value.join(',') : value} />
       ) : null}
-      <div className="relative">
+      <div className="relative flex">
         <button
           ref={triggerRef}
           id={selectId}
@@ -326,101 +373,106 @@ export function Select({
             />
           </svg>
         </button>
-        {open ? (
-          <div
-            className={`absolute top-full left-0 z-40 mt-2 w-full overflow-hidden rounded-lg border border-border bg-panel p-1.5 shadow-lg ${popupClass[size]}`}
-          >
-            <div
-              id={listboxId}
-              role="listbox"
-              aria-labelledby={label ? selectId : undefined}
-              aria-multiselectable={multiple || undefined}
-              ref={listRef}
-              onScroll={measureThumb}
-              className="max-h-60 overflow-y-auto overscroll-contain pr-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            >
-              {placeholder ? (
-                <div
-                  id={`${listboxId}-option--1`}
-                  role="option"
-                  aria-selected={multiple ? multiValues.length === 0 : !selected}
-                  className="cursor-pointer rounded-md px-3 py-2 text-content-dim hover:bg-panel-2"
-                  onClick={() => {
-                    if (multiple) {
-                      setUncontrolledValue([]);
-                      handleChange?.([]);
-                      return;
-                    }
-                    setUncontrolledValue('');
-                    handleChange?.('');
-                    setOpen(false);
-                    triggerRef.current?.focus();
-                  }}
-                >
-                  {placeholder}
-                </div>
-              ) : null}
-              {options.map((option, index) => {
-                const isSelected = multiple
-                  ? multiValues.includes(option.value)
-                  : selected?.value === option.value;
-                return (
-                  <div
-                    key={option.value}
-                    id={`${listboxId}-option-${index}`}
-                    role="option"
-                    aria-selected={isSelected}
-                    aria-disabled={option.disabled || undefined}
-                    className={[
-                      'flex cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2',
-                      option.disabled
-                        ? 'cursor-not-allowed text-content-dim opacity-50'
-                        : 'text-content',
-                      activeIndex === index ? 'bg-panel-2' : '',
-                      isSelected ? 'font-semibold' : '',
-                      'hover:bg-panel-2',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    onMouseEnter={() => !option.disabled && setActiveIndex(index)}
-                    onClick={() => commit(index)}
-                  >
-                    <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">
-                      {option.label}
-                    </span>
-                    {isSelected ? (
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        className="size-4 shrink-0 text-primary"
-                      >
-                        <path
-                          d="m3.5 8.5 3 3 6-7"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-            {thumb ? (
+        {open && popupStyle
+          ? createPortal(
               <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-y-1.5 right-1.5 w-1.5"
+                ref={popupRef}
+                style={popupStyle}
+                className={`z-(--z-modal) overflow-hidden rounded-lg border border-border bg-panel p-1.5 shadow-lg ${popupClass[size]}`}
               >
                 <div
-                  className="w-full rounded-full bg-[#3A3F46]"
-                  style={{ height: thumb.size, transform: `translateY(${thumb.pos}px)` }}
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+                  id={listboxId}
+                  role="listbox"
+                  aria-labelledby={label ? selectId : undefined}
+                  aria-multiselectable={multiple || undefined}
+                  ref={listRef}
+                  onScroll={measureThumb}
+                  className="max-h-60 overflow-y-auto overscroll-contain pr-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                >
+                  {placeholder ? (
+                    <div
+                      id={`${listboxId}-option--1`}
+                      role="option"
+                      aria-selected={multiple ? multiValues.length === 0 : !selected}
+                      className="cursor-pointer rounded-md px-3 py-2 text-content-dim hover:bg-panel-2"
+                      onClick={() => {
+                        if (multiple) {
+                          setUncontrolledValue([]);
+                          handleChange?.([]);
+                          return;
+                        }
+                        setUncontrolledValue('');
+                        handleChange?.('');
+                        setOpen(false);
+                        triggerRef.current?.focus();
+                      }}
+                    >
+                      {placeholder}
+                    </div>
+                  ) : null}
+                  {options.map((option, index) => {
+                    const isSelected = multiple
+                      ? multiValues.includes(option.value)
+                      : selected?.value === option.value;
+                    return (
+                      <div
+                        key={option.value}
+                        id={`${listboxId}-option-${index}`}
+                        role="option"
+                        aria-selected={isSelected}
+                        aria-disabled={option.disabled || undefined}
+                        className={[
+                          'flex cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2',
+                          option.disabled
+                            ? 'cursor-not-allowed text-content-dim opacity-50'
+                            : 'text-content',
+                          activeIndex === index ? 'bg-panel-2' : '',
+                          isSelected ? 'font-semibold' : '',
+                          'hover:bg-panel-2',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                        onMouseEnter={() => !option.disabled && setActiveIndex(index)}
+                        onClick={() => commit(index)}
+                      >
+                        <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">
+                          {option.label}
+                        </span>
+                        {isSelected ? (
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            className="size-4 shrink-0 text-primary"
+                          >
+                            <path
+                              d="m3.5 8.5 3 3 6-7"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+                {thumb ? (
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-y-1.5 right-1.5 w-1.5"
+                  >
+                    <div
+                      className="w-full rounded-full bg-[#3A3F46]"
+                      style={{ height: thumb.size, transform: `translateY(${thumb.pos}px)` }}
+                    />
+                  </div>
+                ) : null}
+              </div>,
+              document.body,
+            )
+          : null}
       </div>
       <FieldCaption error={error} helper={helper} errorId={errorId} helperId={helperId} />
     </div>
