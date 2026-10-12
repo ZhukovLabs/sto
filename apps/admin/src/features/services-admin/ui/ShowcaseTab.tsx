@@ -200,11 +200,12 @@ export function ShowcaseTab({ catalog, onSaved }: ShowcaseTabProps) {
         // ВИТРИНА ГЛАВНОЙ — РОВНО {SHOWCASE_SIZE} УСЛУГ
       </Text>
       <Text color="dim">
-        Первая услуга — большая карточка с бейджем «Первым 20 — 0 BYN», дальше две средних и пять
+        Первая услуга — большая карточка с бейджем «Первым 20 — 0 руб.», дальше две средних и пять
         маленьких. Изменения на сайте появляются сразу после сохранения.
       </Text>
 
       <DndContext
+        id="showcase-order"
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={onDragStart}
