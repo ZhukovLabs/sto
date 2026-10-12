@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -172,5 +173,13 @@ export class RequestsController {
     @Body() body: UpdateRequestStatusBody,
   ): Promise<UpdateStatusResponse> {
     return this.requestsService.updateStatus(id, body.status);
+  }
+
+  @Delete(':id')
+  @UseGuards(BearerTokenGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Удалить заявку вместе с Telegram-сообщениями' })
+  async remove(@Param('id') id: string): Promise<void> {
+    await this.requestsService.remove(id);
   }
 }

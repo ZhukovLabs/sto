@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -259,6 +260,14 @@ export class BookingController {
     @Body() body: UpdateBookingStatusBody,
   ): Promise<UpdateStatusResponse> {
     return this.bookingService.updateStatus(id, body.status);
+  }
+
+  @Delete('bookings/:id')
+  @UseGuards(BearerTokenGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Удалить запись вместе с Telegram-сообщениями' })
+  async remove(@Param('id') id: string): Promise<void> {
+    await this.bookingService.remove(id);
   }
 
   @Get('booking-settings')

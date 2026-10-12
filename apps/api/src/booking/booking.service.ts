@@ -15,6 +15,7 @@ import { formatBookingConfirmation, NotificationService } from '../notifications
 import {
   broadcastToMasters,
   compactMessages,
+  deleteTelegramMessages,
   isTelegramEnabled,
   loadActiveMasterChats,
   type InlineButton,
@@ -460,6 +461,27 @@ export class BookingService {
       });
     this.syncTelegram(booking);
     return { status: booking.status as BookingStatus };
+  }
+
+  async remove(id: string): Promise<void> {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      select: { id: true, messages: { select: { id: true, chatId: true, messageId: true } } },
+    });
+    if (booking === null) {
+      throw new NotFoundException('Запись не найдена');
+    }
+    if (isTelegramEnabled(this.telegram) && booking.messages.length > 0) {
+      await deleteTelegramMessages(this.telegram, booking.messages).catch((error: unknown) => {
+        this.logger.error(`Не удалились Telegram-сообщения записи ${id}: ${String(error)}`);
+      });
+    }
+    await this.prisma.booking.delete({ where: { id } }).catch((error: unknown) => {
+      if (isPrismaErrorCode(error, 'P2025')) {
+        return;
+      }
+      throw error;
+    });
   }
 
   private async slotsForDate(

@@ -17,6 +17,7 @@ import {
   REQUEST_STATUSES,
   broadcastToMasters,
   compactRequestMessages,
+  deleteTelegramMessages,
   formatReminderMessage,
   formatRequestMessage,
   isRequestStatus,
@@ -154,6 +155,27 @@ export class RequestsService {
 
   async countNew(): Promise<number> {
     return this.prisma.request.count({ where: { status: 'new' } });
+  }
+
+  async remove(id: string): Promise<void> {
+    const request = await this.prisma.request.findUnique({
+      where: { id },
+      select: { id: true, messages: { select: { id: true, chatId: true, messageId: true } } },
+    });
+    if (request === null) {
+      throw new NotFoundException('Заявка не найдена');
+    }
+    if (isTelegramEnabled(this.telegram) && request.messages.length > 0) {
+      await deleteTelegramMessages(this.telegram, request.messages).catch((error: unknown) => {
+        this.logger.error(`Не удалились Telegram-сообщения заявки ${id}: ${String(error)}`);
+      });
+    }
+    await this.prisma.request.delete({ where: { id } }).catch((error: unknown) => {
+      if (isPrismaErrorCode(error, 'P2025')) {
+        return;
+      }
+      throw error;
+    });
   }
 
   async updateStatus(id: string, status: unknown): Promise<{ status: RequestStatus }> {
