@@ -139,10 +139,11 @@ export function Modal({
           className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-border-strong sm:hidden"
         />
         <div className="flex shrink-0 items-start justify-between gap-4 px-5 pt-4 sm:px-7 sm:pt-6">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <h2
               id={titleId}
-              className="font-display text-body-lg font-bold uppercase tracking-[0.02em] text-content"
+              title={title}
+              className="font-display text-body-lg font-bold uppercase tracking-[0.02em] text-content truncate"
             >
               {title}
             </h2>

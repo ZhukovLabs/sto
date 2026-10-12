@@ -46,6 +46,8 @@
   --color-warning: #f5b301;
   --color-warning-soft: #2b2110;
   --color-danger: #e5484d;
+  --color-danger-hover: #f0575c;
+  --color-danger-active: #d13a3f;
   --color-danger-soft: #2f1517;
 
   --color-focus: #ff8448;
