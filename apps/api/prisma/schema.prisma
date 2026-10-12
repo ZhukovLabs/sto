@@ -92,9 +92,10 @@ model RequestMessage {
 }
 
 model NotificationSettings {
-  id           String   @id @default("singleton")
-  channelOrder String[] @default(["telegram", "viber", "sms"])
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default("singleton")
+  channelOrder    String[] @default(["telegram", "viber", "sms"])
+  enabledChannels String[] @default([])
+  updatedAt       DateTime @updatedAt
 }
 
 model ServiceGroup {
