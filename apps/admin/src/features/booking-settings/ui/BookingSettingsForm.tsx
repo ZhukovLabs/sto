@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Checkbox, Input, Text } from '@sto/ui';
+import { Trash2 } from 'lucide-react';
+import { Button, Checkbox, Input, Select, Text, TimeInput } from '@sto/ui';
 import {
   readProxyError,
   type BookingSettings,
@@ -11,21 +12,29 @@ import {
   type ScheduleMap,
 } from '@/lib/api';
 
-const WEEKDAYS: { key: keyof ScheduleMap; label: string }[] = [
-  { key: 'mon', label: 'Понедельник' },
-  { key: 'tue', label: 'Вторник' },
-  { key: 'wed', label: 'Среда' },
-  { key: 'thu', label: 'Четверг' },
-  { key: 'fri', label: 'Пятница' },
-  { key: 'sat', label: 'Суббота' },
-  { key: 'sun', label: 'Воскресенье' },
+const WEEKDAYS: { key: keyof ScheduleMap; label: string; short: string }[] = [
+  { key: 'mon', label: 'Понедельник', short: 'ПН' },
+  { key: 'tue', label: 'Вторник', short: 'ВТ' },
+  { key: 'wed', label: 'Среда', short: 'СР' },
+  { key: 'thu', label: 'Четверг', short: 'ЧТ' },
+  { key: 'fri', label: 'Пятница', short: 'ПТ' },
+  { key: 'sat', label: 'Суббота', short: 'СБ' },
+  { key: 'sun', label: 'Воскресенье', short: 'ВС' },
 ];
 
-const STEP_OPTIONS = [30, 60, 90, 120];
+const STEP_OPTIONS = [30, 60, 90, 120].map((step) => ({
+  value: String(step),
+  label: `${step} мин`,
+}));
 
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
+const WEEKDAY_SHORT = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
+
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const dateInputClass =
+  'h-10 rounded-lg border border-border bg-panel px-3 font-mono text-caption text-content focus:border-primary focus:outline-none';
 
 interface ExceptionRow {
   rowId: string;
@@ -36,6 +45,14 @@ interface ExceptionRow {
   blockedTimes: string[];
   /** false — окно from/to ещё не правили вручную, можно подставлять по дате. */
   windowTouched: boolean;
+}
+
+interface FormState {
+  schedule: ScheduleMap;
+  slotStepMinutes: number;
+  horizonDays: number;
+  capacity: number;
+  exceptions: ExceptionRow[];
 }
 
 async function fetchSettings(): Promise<BookingSettings> {
@@ -80,6 +97,10 @@ function isValidDate(value: string): boolean {
   return !Number.isNaN(parsed.getTime());
 }
 
+function weekdayShort(date: string): string {
+  return WEEKDAY_SHORT[new Date(`${date}T00:00:00Z`).getUTCDay()] ?? '';
+}
+
 function scheduleWindowFor(date: string, schedule: ScheduleMap): { from: string; to: string } {
   const key = WEEKDAY_KEYS[new Date(`${date}T00:00:00Z`).getUTCDay()];
   const day = schedule[key];
@@ -87,6 +108,54 @@ function scheduleWindowFor(date: string, schedule: ScheduleMap): { from: string;
     return { from: '09:00', to: '20:00' };
   }
   return { from: day.from, to: day.to };
+}
+
+function stateFromSettings(data: BookingSettings): FormState {
+  return {
+    schedule: data.schedule,
+    slotStepMinutes: data.slotStepMinutes,
+    horizonDays: data.horizonDays,
+    capacity: data.capacity,
+    exceptions: Object.entries(data.exceptions ?? {})
+      .map(([date, window]) => ({
+        rowId: crypto.randomUUID(),
+        date,
+        enabled: window.enabled,
+        from: window.from ?? '09:00',
+        to: window.to ?? '20:00',
+        blockedTimes: [...(window.blockedTimes ?? [])],
+        windowTouched: true,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+  };
+}
+
+function serializeState(state: FormState): string {
+  const exceptions = state.exceptions
+    .filter((row) => row.date !== '')
+    .map((row) => ({
+      date: row.date,
+      enabled: row.enabled,
+      from: row.enabled ? row.from : null,
+      to: row.enabled ? row.to : null,
+      blockedTimes: row.enabled ? [...row.blockedTimes].sort() : null,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return JSON.stringify({
+    schedule: state.schedule,
+    slotStepMinutes: state.slotStepMinutes,
+    horizonDays: state.horizonDays,
+    capacity: state.capacity,
+    exceptions,
+  });
+}
+
+function DayOffBadge() {
+  return (
+    <span className="inline-flex h-10 items-center rounded-full border border-border px-3 font-mono text-micro uppercase tracking-[0.1em] text-content-dim">
+      Выходной
+    </span>
+  );
 }
 
 function SlotGrid({
@@ -165,7 +234,7 @@ function SlotGrid({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-panel-2/40 p-4">
       <div className="grid grid-cols-4 gap-2 sm:grid-cols-6" role="group" aria-label="Слоты дня">
         {overview.data.slots.map((slot) => {
           const blocked = blockedSet.has(slot.time);
@@ -201,26 +270,15 @@ function SlotGrid({
         })}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Text variant="micro" color="dim" className="font-mono uppercase">
-          Заблокировать период
-        </Text>
-        <input
-          type="time"
+        <TimeInput
           value={rangeFrom}
           aria-label="Период блокировки, начало"
-          onChange={(event) => setRangeFrom(event.target.value)}
-          className="rounded-lg border border-border bg-panel px-3 py-1.5 font-mono text-caption text-content"
+          onChange={setRangeFrom}
         />
         <span className="font-mono text-caption text-content-muted">—</span>
-        <input
-          type="time"
-          value={rangeTo}
-          aria-label="Период блокировки, конец"
-          onChange={(event) => setRangeTo(event.target.value)}
-          className="rounded-lg border border-border bg-panel px-3 py-1.5 font-mono text-caption text-content"
-        />
+        <TimeInput value={rangeTo} aria-label="Период блокировки, конец" onChange={setRangeTo} />
         <Button variant="outline" size="sm" onClick={applyBlockRange}>
-          Заблокировать
+          Заблокировать период
         </Button>
         {rangeError ? (
           <Text variant="caption" className="text-danger">
@@ -228,11 +286,24 @@ function SlotGrid({
           </Text>
         ) : null}
       </div>
-      <Text variant="micro" color="dim">
-        Клик по времени или период — блокировка для новых записей. ● — есть активная запись (имя в
-        подсказке), прошедшее время приглушено. Период захватывает и те слоты, которые он режет
-        пополам.
-      </Text>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-micro uppercase tracking-[0.06em] text-content-dim">
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="inline-block h-2.5 w-2.5 rounded-sm bg-panel ring-1 ring-border"
+          />
+          свободен
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="inline-block h-2.5 w-2.5 rounded-sm bg-danger-soft ring-1 ring-danger"
+          />
+          заблокирован
+        </span>
+        <span>● — есть запись</span>
+        <span>период режет слоты пополам</span>
+      </div>
       {blockedWithBookings.length > 0 ? (
         <Text variant="caption" className="text-warning">
           {blockedWithBookings
@@ -254,39 +325,116 @@ export function BookingSettingsForm() {
   const [horizonDays, setHorizonDays] = useState(14);
   const [capacity, setCapacity] = useState(1);
   const [exceptions, setExceptions] = useState<ExceptionRow[]>([]);
-  const [saved, setSaved] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const didInit = useRef(false);
+  const savedRef = useRef<string | null>(null);
+
+  const snapshot = useMemo(
+    () =>
+      schedule === null
+        ? null
+        : serializeState({ schedule, slotStepMinutes, horizonDays, capacity, exceptions }),
+    [schedule, slotStepMinutes, horizonDays, capacity, exceptions],
+  );
 
   useEffect(() => {
-    if (settings.data === null || settings.data === undefined) {
+    if (didInit.current || settings.data === null || settings.data === undefined) {
       return;
     }
-    setSchedule(settings.data.schedule);
-    setSlotStepMinutes(settings.data.slotStepMinutes);
-    setHorizonDays(settings.data.horizonDays);
-    setCapacity(settings.data.capacity);
-    setExceptions(
-      Object.entries(settings.data.exceptions ?? {}).map(([date, window]) => ({
-        rowId: crypto.randomUUID(),
-        date,
-        enabled: window.enabled,
-        from: window.from ?? '09:00',
-        to: window.to ?? '20:00',
-        blockedTimes: [...(window.blockedTimes ?? [])],
-        windowTouched: true,
-      })),
-    );
+    didInit.current = true;
+    const state = stateFromSettings(settings.data);
+    setSchedule(state.schedule);
+    setSlotStepMinutes(state.slotStepMinutes);
+    setHorizonDays(state.horizonDays);
+    setCapacity(state.capacity);
+    setExceptions(state.exceptions);
+    savedRef.current = serializeState(state);
   }, [settings.data]);
 
   const mutation = useMutation({
     mutationFn: (patch: unknown) => saveSettings(patch),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['booking-settings'] });
       void queryClient.invalidateQueries({ queryKey: ['day-overview'] });
-      setSaved(true);
-      window.setTimeout(() => setSaved(false), 2500);
     },
   });
+
+  const duplicateDates = useMemo(() => {
+    const seen = new Set<string>();
+    const dupes = new Set<string>();
+    for (const row of exceptions) {
+      if (row.date === '') {
+        continue;
+      }
+      if (seen.has(row.date)) {
+        dupes.add(row.date);
+      }
+      seen.add(row.date);
+    }
+    return dupes;
+  }, [exceptions]);
+
+  function timesComplete(): boolean {
+    if (schedule === null) {
+      return false;
+    }
+    for (const day of Object.values(schedule)) {
+      if (day.enabled && (!TIME_PATTERN.test(day.from) || !TIME_PATTERN.test(day.to))) {
+        return false;
+      }
+    }
+    return exceptions.every(
+      (row) =>
+        !row.enabled ||
+        (TIME_PATTERN.test(row.from) && TIME_PATTERN.test(row.to) && row.from < row.to),
+    );
+  }
+
+  function buildPatch(): unknown {
+    const exceptionsMap: ExceptionsMap = {};
+    for (const row of exceptions) {
+      if (row.date === '') {
+        continue;
+      }
+      if (!row.enabled) {
+        exceptionsMap[row.date] = { enabled: false };
+        continue;
+      }
+      const blockedTimes = [...new Set(row.blockedTimes)]
+        .filter((time) => time >= row.from && time < row.to)
+        .sort();
+      exceptionsMap[row.date] = {
+        enabled: true,
+        from: row.from,
+        to: row.to,
+        blockedTimes: blockedTimes.length > 0 ? blockedTimes : undefined,
+      };
+    }
+    return {
+      slotStepMinutes,
+      horizonDays,
+      capacity,
+      schedule,
+      exceptions: exceptionsMap,
+    };
+  }
+
+  // Автосохранение: применяем изменения как в остальных разделах — сразу,
+  // с короткой паузой на завершение ввода времени.
+  useEffect(() => {
+    if (snapshot === null || snapshot === savedRef.current) {
+      return;
+    }
+    if (duplicateDates.size > 0 || !timesComplete()) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      mutation.mutate(buildPatch(), {
+        onSuccess: () => {
+          savedRef.current = snapshot;
+        },
+      });
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [snapshot, duplicateDates]);
 
   if (settings.isPending) {
     return (
@@ -354,79 +502,74 @@ export function BookingSettingsForm() {
     );
   };
 
-  const submit = () => {
-    const exceptionsMap: ExceptionsMap = {};
-    for (const row of exceptions) {
-      if (row.date === '') {
-        continue;
-      }
-      if (exceptionsMap[row.date] !== undefined) {
-        setFormError(`Дата ${row.date} указана дважды — оставьте одну строку`);
-        return;
-      }
-      if (!row.enabled) {
-        exceptionsMap[row.date] = { enabled: false };
-        continue;
-      }
-      const blockedTimes = [...new Set(row.blockedTimes)]
-        .filter((time) => time >= row.from && time < row.to)
-        .sort();
-      exceptionsMap[row.date] = {
-        enabled: true,
-        from: row.from,
-        to: row.to,
-        blockedTimes: blockedTimes.length > 0 ? blockedTimes : undefined,
-      };
-    }
-    setFormError(null);
-    mutation.mutate({
-      slotStepMinutes,
-      horizonDays,
-      capacity,
-      schedule,
-      exceptions: exceptionsMap,
-    });
+  const addException = () => {
+    setExceptions((rows) => [
+      ...rows,
+      {
+        rowId: crypto.randomUUID(),
+        date: '',
+        enabled: false,
+        from: '09:00',
+        to: '20:00',
+        blockedTimes: [],
+        windowTouched: false,
+      },
+    ]);
   };
 
   return (
     <div className="flex flex-col gap-8">
+      {mutation.isError ? (
+        <Text variant="body" className="text-danger">
+          Не удалось сохранить: {mutation.error.message}
+        </Text>
+      ) : null}
       <section className="flex flex-col gap-4 rounded-xl border border-border bg-panel p-6">
         <Text variant="label" className="font-mono uppercase tracking-[0.12em] text-content-dim">
           Режим работы по дням недели
         </Text>
-        <div className="flex flex-col divide-y divide-border">
-          {WEEKDAYS.map(({ key, label }) => (
-            <div key={key} className="flex flex-wrap items-center gap-4 py-3">
-              <label className="inline-flex w-40 items-center gap-2.5">
-                <Checkbox
-                  checked={schedule[key].enabled}
-                  onChange={(checked) => updateDay(key, { enabled: checked })}
-                />
-                <Text variant="body" color={schedule[key].enabled ? undefined : 'muted'}>
-                  {label}
-                </Text>
-              </label>
-              {schedule[key].enabled ? (
-                <span className="inline-flex items-center gap-2 font-mono text-caption text-content-muted">
-                  <input
-                    type="time"
-                    value={schedule[key].from}
-                    onChange={(event) => updateDay(key, { from: event.target.value })}
-                    className="rounded-lg border border-border bg-panel px-3 py-1.5"
-                  />
-                  —
-                  <input
-                    type="time"
-                    value={schedule[key].to}
-                    onChange={(event) => updateDay(key, { to: event.target.value })}
-                    className="rounded-lg border border-border bg-panel px-3 py-1.5"
-                  />
-                </span>
-              ) : (
-                <Text variant="micro" color="dim" className="font-mono uppercase">
-                  Выходной
-                </Text>
-              )}
+        <div className="grid gap-x-10 sm:grid-cols-2">
+          {[WEEKDAYS.slice(0, 3), WEEKDAYS.slice(3)].map((column, columnIndex) => (
+            <div key={columnIndex} className="flex flex-col">
+              {column.map(({ key, label }, indexInColumn) => (
+                <div
+                  key={key}
+                  className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-border py-3 ${
+                    indexInColumn < column.length - 1 ? 'border-b' : ''
+                  }`}
+                >
+                  <div className="w-44 shrink-0">
+                    <Checkbox
+                      checked={schedule[key].enabled}
+                      onChange={(checked) => updateDay(key, { enabled: checked })}
+                      label={
+                        <Text variant="body" color={schedule[key].enabled ? undefined : 'muted'}>
+                          {label}
+                        </Text>
+                      }
+                    />
+                  </div>
+                  {schedule[key].enabled ? (
+                    <span className="inline-flex shrink-0 items-center gap-2 font-mono text-caption text-content-muted">
+                      <TimeInput
+                        value={schedule[key].from}
+                        aria-label={`${label}, начало`}
+                        onChange={(from) => updateDay(key, { from })}
+                      />
+                      <span aria-hidden className="leading-none">
+                        —
+                      </span>
+                      <TimeInput
+                        value={schedule[key].to}
+                        aria-label={`${label}, конец`}
+                        onChange={(to) => updateDay(key, { to })}
+                      />
+                    </span>
+                  ) : (
+                    <DayOffBadge />
+                  )}
+                </div>
+              ))}
             </div>
           ))}
         </div>
@@ -437,78 +580,44 @@ export function BookingSettingsForm() {
           Параметры записи
         </Text>
         <div className="grid gap-4 sm:grid-cols-3">
-          <label className="flex flex-col gap-2">
-            <Text variant="micro" color="dim" className="font-mono uppercase">
-              Шаг слота
-            </Text>
-            <select
-              value={slotStepMinutes}
-              onChange={(event) => setSlotStepMinutes(Number(event.target.value))}
-              className="h-12 rounded-lg border border-border bg-panel px-3 font-mono text-sm text-content"
-            >
-              {STEP_OPTIONS.map((step) => (
-                <option key={step} value={step}>
-                  {step} мин
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-2">
-            <Text variant="micro" color="dim" className="font-mono uppercase">
-              Горизонт, дней
-            </Text>
-            <Input
-              type="number"
-              min={1}
-              max={60}
-              value={String(horizonDays)}
-              onChange={(event) => setHorizonDays(Number(event.target.value))}
-            />
-          </label>
-          <label className="flex flex-col gap-2">
-            <Text variant="micro" color="dim" className="font-mono uppercase">
-              Одновременных записей
-            </Text>
-            <Input
-              type="number"
-              min={1}
-              max={10}
-              value={String(capacity)}
-              onChange={(event) => setCapacity(Number(event.target.value))}
-            />
-          </label>
+          <Select
+            label="Шаг слота"
+            size="md"
+            options={STEP_OPTIONS}
+            value={String(slotStepMinutes)}
+            onChange={(value) => setSlotStepMinutes(Number(value))}
+          />
+          <Input
+            type="number"
+            label="Горизонт, дней"
+            min={1}
+            max={60}
+            value={String(horizonDays)}
+            onChange={(event) => setHorizonDays(Number(event.target.value))}
+          />
+          <Input
+            type="number"
+            label="Одновременных записей"
+            min={1}
+            max={10}
+            value={String(capacity)}
+            onChange={(event) => setCapacity(Number(event.target.value))}
+          />
         </div>
       </section>
 
       <section className="flex flex-col gap-4 rounded-xl border border-border bg-panel p-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <Text variant="label" className="font-mono uppercase tracking-[0.12em] text-content-dim">
             Исключения по датам
           </Text>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setExceptions((rows) => [
-                ...rows,
-                {
-                  rowId: crypto.randomUUID(),
-                  date: '',
-                  enabled: false,
-                  from: '09:00',
-                  to: '20:00',
-                  blockedTimes: [],
-                  windowTouched: false,
-                },
-              ])
-            }
-          >
+          <Button variant="outline" size="sm" onClick={addException}>
             Добавить дату
           </Button>
         </div>
         <Text variant="micro" color="dim">
-          Отдельная дата перекрывает недельное расписание: можно закрыть день целиком, изменить часы
-          или заблокировать отдельные слоты и периоды. Слоты появляются у включённой даты.
+          Дата перекрывает недельное расписание: закрыть день целиком, изменить часы или
+          заблокировать отдельные слоты. Слоты появляются у включённой даты.
         </Text>
         {exceptions.length === 0 ? (
           <Text variant="body" color="muted">
@@ -516,92 +625,81 @@ export function BookingSettingsForm() {
           </Text>
         ) : (
           <div className="flex flex-col divide-y divide-border">
-            {exceptions.map((row, index) => (
-              <div key={row.rowId} className="flex flex-col gap-3 py-3">
-                <div className="flex flex-wrap items-center gap-4">
-                  <input
-                    type="date"
-                    value={row.date}
-                    onChange={(event) => changeExceptionDate(index, event.target.value)}
-                    className="h-10 rounded-lg border border-border bg-panel px-3 font-mono text-sm text-content"
-                  />
-                  <label className="inline-flex items-center gap-2.5">
-                    <Checkbox
-                      checked={row.enabled}
-                      onChange={(checked) => updateException(index, { enabled: checked })}
-                    />
-                    <Text variant="body" color={row.enabled ? undefined : 'muted'}>
-                      Работаем
-                    </Text>
-                  </label>
-                  {row.enabled ? (
-                    <span className="inline-flex items-center gap-2 font-mono text-caption text-content-muted">
+            {exceptions.map((row, index) => {
+              const isDuplicate = duplicateDates.has(row.date);
+              return (
+                <div key={row.rowId} className="flex flex-col gap-3 py-4">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <span className="relative inline-flex items-center gap-2">
                       <input
-                        type="time"
-                        value={row.from}
-                        onChange={(event) =>
-                          updateException(index, { from: event.target.value, windowTouched: true })
-                        }
-                        className="rounded-lg border border-border bg-panel px-3 py-1.5"
+                        type="date"
+                        value={row.date}
+                        aria-label="Дата исключения"
+                        onChange={(event) => changeExceptionDate(index, event.target.value)}
+                        className={`${dateInputClass} ${isDuplicate ? 'border-danger' : ''}`}
                       />
-                      —
-                      <input
-                        type="time"
-                        value={row.to}
-                        onChange={(event) =>
-                          updateException(index, { to: event.target.value, windowTouched: true })
-                        }
-                        className="rounded-lg border border-border bg-panel px-3 py-1.5"
-                      />
+                      {isValidDate(row.date) ? (
+                        <span className="rounded-full border border-border px-2.5 py-1 font-mono text-micro uppercase tracking-[0.1em] text-content-dim">
+                          {weekdayShort(row.date)}
+                        </span>
+                      ) : null}
                     </span>
-                  ) : (
-                    <Text variant="micro" color="dim" className="font-mono uppercase">
-                      Выходной
+                    <label className="inline-flex items-center gap-2.5">
+                      <Checkbox
+                        checked={row.enabled}
+                        onChange={(checked) => updateException(index, { enabled: checked })}
+                      />
+                      <Text variant="body" color={row.enabled ? undefined : 'muted'}>
+                        Работаем
+                      </Text>
+                    </label>
+                    {row.enabled ? (
+                      <span className="inline-flex items-center gap-2 font-mono text-caption text-content-muted">
+                        <TimeInput
+                          value={row.from}
+                          aria-label="Часы работы, начало"
+                          onChange={(from) => updateException(index, { from, windowTouched: true })}
+                        />
+                        <span aria-hidden>—</span>
+                        <TimeInput
+                          value={row.to}
+                          aria-label="Часы работы, конец"
+                          onChange={(to) => updateException(index, { to, windowTouched: true })}
+                        />
+                      </span>
+                    ) : (
+                      <DayOffBadge />
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto hover:bg-danger/10 hover:text-danger"
+                      aria-label={`Удалить дату${row.date ? ` ${row.date}` : ''}`}
+                      onClick={() => setExceptions((rows) => rows.filter((_, i) => i !== index))}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden="true" />
+                      Удалить
+                    </Button>
+                  </div>
+                  {isDuplicate ? (
+                    <Text variant="caption" className="text-danger">
+                      Эта дата уже указана в другой строке
                     </Text>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ml-auto"
-                    onClick={() => setExceptions((rows) => rows.filter((_, i) => i !== index))}
-                  >
-                    Удалить
-                  </Button>
+                  ) : null}
+                  {row.enabled && isValidDate(row.date) ? (
+                    <SlotGrid
+                      date={row.date}
+                      blockedTimes={row.blockedTimes}
+                      onToggle={(time) => toggleBlocked(index, time)}
+                      onBlockMany={(times) => blockMany(index, times)}
+                    />
+                  ) : null}
                 </div>
-                {row.enabled && isValidDate(row.date) ? (
-                  <SlotGrid
-                    date={row.date}
-                    blockedTimes={row.blockedTimes}
-                    onToggle={(time) => toggleBlocked(index, time)}
-                    onBlockMany={(times) => blockMany(index, times)}
-                  />
-                ) : null}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
-
-      <div className="flex items-center gap-4">
-        <Button variant="primary" size="lg" loading={mutation.isPending} onClick={submit}>
-          Сохранить
-        </Button>
-        {saved ? (
-          <Text variant="body" className="text-success">
-            Сохранено
-          </Text>
-        ) : null}
-        {formError ? (
-          <Text variant="body" className="text-danger">
-            {formError}
-          </Text>
-        ) : null}
-        {mutation.isError ? (
-          <Text variant="body" className="text-danger">
-            {mutation.error.message}
-          </Text>
-        ) : null}
-      </div>
     </div>
   );
 }

@@ -129,6 +129,16 @@ export async function apiListRequests(token: string): Promise<RequestRow[]> {
   return (await response.json()) as RequestRow[];
 }
 
+export async function apiDeleteRequest(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/requests/${id}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) {
+    throw await parseError(response);
+  }
+}
+
 export async function apiCountNewRequests(token: string): Promise<number> {
   const response = await fetch(`${API_URL}/requests/count-new`, {
     headers: { authorization: `Bearer ${token}` },
@@ -253,6 +263,16 @@ export async function apiListBookings(token: string): Promise<BookingRow[]> {
     throw await parseError(response);
   }
   return (await response.json()) as BookingRow[];
+}
+
+export async function apiDeleteBooking(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/bookings/${id}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) {
+    throw await parseError(response);
+  }
 }
 
 export async function apiCountUnconfirmedBookings(token: string): Promise<number> {
@@ -387,6 +407,7 @@ export const NOTIFICATION_CHANNEL_LABELS: Record<NotificationChannel, string> = 
 
 export interface NotificationSettings {
   channelOrder: NotificationChannel[];
+  enabled: NotificationChannel[];
 }
 
 export interface SmsBalance {
