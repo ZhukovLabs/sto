@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react';
-import { Breadcrumbs, BynSign, Container, Heading, Text } from '@/shared/ui';
+import { Breadcrumbs, Container, Heading, Text } from '@/shared/ui';
 import { UNIT_SHORT, formatPriceFrom } from '@/entities/service';
 import type { CatalogGroup } from '@/entities/service';
 
@@ -34,7 +34,7 @@ export function ServicesGroupPage({ group }: ServicesGroupPageProps) {
                 <>
                   {' · от '}
                   {priceFrom}
-                  <BynSign aria-label="белорусских рублей" />
+                  {' руб.'}
                 </>
               )}
             </Text>
@@ -61,7 +61,7 @@ export function ServicesGroupPage({ group }: ServicesGroupPageProps) {
                 <span className="flex shrink-0 flex-col items-end gap-0.5">
                   <span className="whitespace-nowrap font-mono text-body-lg text-content">
                     {formatPriceFrom(service)}
-                    <BynSign aria-label="белорусских рублей" />
+                    {' руб.'}
                   </span>
                   {service.unit !== null && (
                     <span className="font-mono text-caption text-content-dim">

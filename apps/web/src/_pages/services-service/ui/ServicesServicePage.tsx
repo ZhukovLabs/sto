@@ -1,5 +1,5 @@
 import { Phone } from 'lucide-react';
-import { Breadcrumbs, BynSign, Container, Heading, Text } from '@/shared/ui';
+import { Breadcrumbs, Container, Heading, Text } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
 import { UNIT_SHORT, formatPriceFrom, servicePhoto } from '@/entities/service';
 import type { CatalogGroup } from '@/entities/service';
@@ -38,7 +38,7 @@ export function ServicesServicePage({ group, service }: ServicesServicePageProps
               </Heading>
               <p className="mt-5 font-mono text-2xl text-content">
                 {formatPriceFrom(service)}
-                <BynSign aria-label="белорусских рублей" />
+                {' руб.'}
                 {service.unit !== null && (
                   <span className="ml-2 text-caption text-content-dim">
                     {UNIT_SHORT[service.unit]}
@@ -104,7 +104,7 @@ export function ServicesServicePage({ group, service }: ServicesServicePageProps
                     </span>
                     <span className="shrink-0 whitespace-nowrap font-mono text-body text-content-muted">
                       от {item.priceFrom}
-                      <BynSign aria-label="белорусских рублей" />
+                      {' руб.'}
                     </span>
                   </a>
                 </li>

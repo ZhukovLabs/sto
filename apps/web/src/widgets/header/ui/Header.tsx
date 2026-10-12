@@ -24,7 +24,7 @@ export function Header() {
   const [bookingOpen, setBookingOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 16);
+    const onScroll = () => setScrolled(window.scrollY > 2);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -34,7 +34,7 @@ export function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-(--z-header) border-b transition-colors duration-200 ${
+      className={`sticky top-0 z-(--z-header) border-b transition-colors duration-150 ${
         transparent
           ? 'border-transparent bg-transparent'
           : 'border-border bg-bg/95 backdrop-blur-md'

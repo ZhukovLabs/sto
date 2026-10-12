@@ -3,7 +3,6 @@ export {
   Badge,
   Breadcrumbs,
   Button,
-  BynSign,
   Card,
   Checkbox,
   Container,

@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ArrowRight, LayoutGrid, Table2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowRight, LayoutGrid, Search, Table2, X } from 'lucide-react';
 import {
+  Input,
   SegmentedControl,
   Table,
   TableBody,
@@ -10,6 +11,7 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
+  Text,
 } from '@/shared/ui';
 import { groupIcon, PriceByn, ServiceCard } from '@/entities/service';
 import type { CatalogGroup } from '@/entities/service';
@@ -22,6 +24,14 @@ const VIEW_ITEMS = [
   { value: 'cards', label: 'Карточки', icon: <LayoutGrid className="size-3.5" /> },
   { value: 'table', label: 'Таблица', icon: <Table2 className="size-3.5" /> },
 ];
+
+function servicePlural(count: number): string {
+  const last = count % 10;
+  const lastTwo = count % 100;
+  if (last === 1 && lastTwo !== 11) return 'услуга';
+  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return 'услуги';
+  return 'услуг';
+}
 
 function GroupTitle({ group }: { group: CatalogGroup }) {
   const Icon = groupIcon(group.icon);
@@ -39,7 +49,7 @@ function GroupTitle({ group }: { group: CatalogGroup }) {
         </a>
       </h2>
       <span aria-hidden="true" className="h-px flex-1 bg-border" />
-      <span className="font-mono text-caption uppercase tracking-[0.08em] text-content-dim">
+      <span className="font-mono text-caption uppercase tracking-[0.08em] text-content-muted">
         {group.services.length}
       </span>
     </div>
@@ -124,6 +134,9 @@ export function ServicesCatalog({
   onOrder: (service: string) => void;
 }) {
   const [view, setView] = useState<ViewMode>('cards');
+  const [query, setQuery] = useState('');
+  const [activeGroup, setActiveGroup] = useState(catalog[0]?.id ?? null);
+  const chipsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -146,45 +159,150 @@ export function ServicesCatalog({
     }
   };
 
-  const totalCount = catalog.reduce((sum, group) => sum + group.services.length, 0);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (normalizedQuery === '') return catalog;
+    return catalog
+      .map((group) => ({
+        ...group,
+        services: group.services.filter(
+          (service) =>
+            service.title.toLowerCase().includes(normalizedQuery) ||
+            service.description.toLowerCase().includes(normalizedQuery),
+        ),
+      }))
+      .filter((group) => group.services.length > 0);
+  }, [catalog, normalizedQuery]);
+
+  useEffect(() => {
+    if (normalizedQuery !== '') return;
+    const sections = catalog
+      .map((group) => document.getElementById(`group-${group.id}`))
+      .filter((el): el is HTMLElement => el !== null);
+    if (sections.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]?.target.id.startsWith('group-')) {
+          setActiveGroup(visible[0].target.id.slice('group-'.length));
+        }
+      },
+      { rootMargin: '-25% 0px -65% 0px' },
+    );
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [catalog, normalizedQuery]);
+
+  const scrollToGroup = (groupId: string) => {
+    const el = document.getElementById(`group-${groupId}`);
+    if (el === null) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const chip = chipsRef.current?.querySelector<HTMLButtonElement>(`[data-group="${groupId}"]`);
+    chip?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  };
+
+  const totalCount = filtered.reduce((sum, group) => sum + group.services.length, 0);
 
   return (
     <div className="flex flex-col gap-10">
-      <div className="flex items-center justify-between gap-4">
-        <span className="font-mono text-caption uppercase tracking-[0.08em] text-content-dim">
-          {totalCount} услуг · цены ориентировочные
-        </span>
-        <div className="hidden sm:block">
-          <SegmentedControl
-            aria-label="Вид отображения услуг"
-            items={VIEW_ITEMS}
-            value={view}
-            onChange={changeView}
-          />
+      <div className="sticky top-14 z-30 -mx-4 border-b border-border bg-bg/95 px-4 py-3 backdrop-blur-md sm:top-16 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-full sm:max-w-xs">
+              <div className="relative">
+                <Input
+                  size="sm"
+                  leftIcon={<Search className="size-4" aria-hidden="true" />}
+                  placeholder="Найти услугу — масло, колодки…"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  aria-label="Поиск услуги"
+                  className="w-full"
+                />
+                {query !== '' ? (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    aria-label="Очистить поиск"
+                    className="absolute right-2.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-content-dim transition-colors hover:bg-panel-2 hover:text-content"
+                  >
+                    <X className="size-3.5" aria-hidden="true" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <span className="ml-auto hidden shrink-0 font-mono text-caption uppercase tracking-[0.08em] text-content-muted lg:block">
+              {totalCount} {servicePlural(totalCount)}
+            </span>
+            <div className="ml-auto hidden shrink-0 sm:block lg:ml-4">
+              <SegmentedControl
+                aria-label="Вид отображения услуг"
+                items={VIEW_ITEMS}
+                value={view}
+                onChange={changeView}
+              />
+            </div>
+          </div>
+          {normalizedQuery === '' ? (
+            <div
+              ref={chipsRef}
+              role="navigation"
+              aria-label="Разделы услуг"
+              className="scroll-slim -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5"
+            >
+              {catalog.map((group) => {
+                const active = group.id === activeGroup;
+                return (
+                  <button
+                    key={group.id}
+                    type="button"
+                    data-group={group.id}
+                    onClick={() => scrollToGroup(group.id)}
+                    aria-current={active ? 'true' : undefined}
+                    className={`shrink-0 rounded-full border px-3.5 py-1.5 font-mono text-caption uppercase tracking-[0.08em] transition-colors motion-reduce:transition-none ${
+                      active
+                        ? 'border-primary bg-primary text-primary-ink'
+                        : 'border-border bg-panel text-content-muted hover:border-border-strong hover:text-content'
+                    }`}
+                  >
+                    {group.title}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      {catalog.map((group) => (
-        <section
-          key={group.id}
-          aria-labelledby={`group-${group.id}`}
-          className="flex flex-col gap-5"
-        >
-          <GroupTitle group={group} />
-          {view === 'cards' ? (
-            <GroupCards group={group} />
-          ) : (
-            <>
-              <div className="sm:hidden">
-                <GroupCards group={group} />
-              </div>
-              <div className="hidden sm:block">
-                <GroupTable group={group} onSelect={onOrder} />
-              </div>
-            </>
-          )}
-        </section>
-      ))}
+      {filtered.length === 0 ? (
+        <Text variant="body" color="muted" className="py-12 text-center">
+          По запросу «{query.trim()}» ничего не нашлось. Позвоните — подскажем по любой работе.
+        </Text>
+      ) : (
+        filtered.map((group) => (
+          <section
+            key={group.id}
+            aria-labelledby={`group-${group.id}`}
+            className="flex scroll-mt-36 flex-col gap-5"
+          >
+            <GroupTitle group={group} />
+            {view === 'cards' ? (
+              <GroupCards group={group} />
+            ) : (
+              <>
+                <div className="sm:hidden">
+                  <GroupCards group={group} />
+                </div>
+                <div className="hidden sm:block">
+                  <GroupTable group={group} onSelect={onOrder} />
+                </div>
+              </>
+            )}
+          </section>
+        ))
+      )}
 
       <button
         type="button"
