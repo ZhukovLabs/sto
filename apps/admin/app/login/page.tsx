@@ -1,5 +1,5 @@
-import { Wrench } from 'lucide-react';
 import { Heading, Text } from '@sto/ui';
+import { LogoMark } from '@/shared/brand/LogoMark';
 import { LoginForm } from './login-form';
 
 export default function LoginPage() {
@@ -11,9 +11,7 @@ export default function LoginPage() {
           className="absolute -top-32 -left-32 size-[28rem] rounded-full bg-primary/15 blur-3xl"
         />
         <div className="relative flex items-center gap-3">
-          <span className="flex size-9 items-center justify-center rounded-md bg-primary">
-            <Wrench aria-hidden="true" className="size-4 text-primary-ink" strokeWidth={2} />
-          </span>
+          <LogoMark className="size-9" />
           <Text variant="label" className="font-mono uppercase tracking-[0.14em]">
             ПроМакс
           </Text>
@@ -25,7 +23,7 @@ export default function LoginPage() {
             Ремонт без сюрпризов
           </Heading>
           <Text variant="mono" color="dim" className="tracking-[0.08em]">
-            {'// ПАНЕЛЬ УПРАВЛЕНИЯ СЕРВИСОМ'}
+            {'ПАНЕЛЬ УПРАВЛЕНИЯ СЕРВИСОМ'}
           </Text>
         </div>
 
@@ -37,9 +35,7 @@ export default function LoginPage() {
       <section className="flex items-center justify-center px-4 py-10 sm:px-8">
         <div className="flex w-full max-w-sm flex-col gap-8">
           <div className="flex flex-col items-center gap-3.5 lg:items-start">
-            <span className="flex size-10 items-center justify-center rounded-md bg-primary lg:hidden">
-              <Wrench aria-hidden="true" className="size-4.5 text-primary-ink" strokeWidth={2} />
-            </span>
+            <LogoMark className="size-10 lg:hidden" />
             <div className="flex flex-col items-center gap-1.5 lg:items-start">
               <Heading variant="section" font="display" className="uppercase">
                 Панель управления
