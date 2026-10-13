@@ -52,6 +52,8 @@ export { Textarea } from './components/Textarea/Textarea';
 export type { TextareaProps } from './components/Textarea/Textarea';
 export { Select } from './components/Select/Select';
 export type { SelectProps, SelectOption } from './components/Select/Select';
+export { RichTextEditor } from './components/RichTextEditor/RichTextEditor';
+export type { RichTextEditorProps } from './components/RichTextEditor/RichTextEditor';
 export { Checkbox } from './components/Checkbox/Checkbox';
 export type { CheckboxProps } from './components/Checkbox/Checkbox';
 export { Spinner } from './components/Spinner/Spinner';
