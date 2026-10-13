@@ -20,5 +20,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
   revalidateTag('services', 'minutes');
   revalidateTag('team', 'minutes');
+  revalidateTag('site-settings', 'minutes');
+  revalidateTag('faq', 'minutes');
+  revalidateTag('news', 'minutes');
   return NextResponse.json({ revalidated: true });
 }
