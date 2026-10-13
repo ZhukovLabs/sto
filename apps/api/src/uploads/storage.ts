@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { unlink } from 'node:fs/promises';
+import { s3DeleteImage, s3KeyForUrl } from './s3';
 
 export const UPLOADS_URL_PREFIX = '/uploads/';
 
@@ -28,8 +29,13 @@ export function deleteUploadByUrl(url: string | null | undefined): void {
     return;
   }
   const name = url.slice(UPLOADS_URL_PREFIX.length);
-  if (name.length === 0 || name.includes('/') || name.includes('\\') || name.includes('..')) {
+  if (name.length === 0 || name.includes('\\') || name.includes('..')) {
     return;
   }
+  // Файл может жить на локальном диске и/или в S3 - чистим оба места.
   void unlink(join(uploadsDir(), name)).catch((): undefined => undefined);
+  const key = s3KeyForUrl(url);
+  if (key !== null) {
+    void s3DeleteImage(key);
+  }
 }

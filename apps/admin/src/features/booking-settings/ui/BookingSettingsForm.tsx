@@ -52,6 +52,7 @@ interface FormState {
   slotStepMinutes: number;
   horizonDays: number;
   capacity: number;
+  onlineDisabled: boolean;
   exceptions: ExceptionRow[];
 }
 
@@ -116,6 +117,7 @@ function stateFromSettings(data: BookingSettings): FormState {
     slotStepMinutes: data.slotStepMinutes,
     horizonDays: data.horizonDays,
     capacity: data.capacity,
+    onlineDisabled: data.onlineDisabled,
     exceptions: Object.entries(data.exceptions ?? {})
       .map(([date, window]) => ({
         rowId: crypto.randomUUID(),
@@ -146,6 +148,7 @@ function serializeState(state: FormState): string {
     slotStepMinutes: state.slotStepMinutes,
     horizonDays: state.horizonDays,
     capacity: state.capacity,
+    onlineDisabled: state.onlineDisabled,
     exceptions,
   });
 }
@@ -324,6 +327,7 @@ export function BookingSettingsForm() {
   const [slotStepMinutes, setSlotStepMinutes] = useState(60);
   const [horizonDays, setHorizonDays] = useState(14);
   const [capacity, setCapacity] = useState(1);
+  const [onlineDisabled, setOnlineDisabled] = useState(false);
   const [exceptions, setExceptions] = useState<ExceptionRow[]>([]);
   const didInit = useRef(false);
   const savedRef = useRef<string | null>(null);
@@ -332,8 +336,8 @@ export function BookingSettingsForm() {
     () =>
       schedule === null
         ? null
-        : serializeState({ schedule, slotStepMinutes, horizonDays, capacity, exceptions }),
-    [schedule, slotStepMinutes, horizonDays, capacity, exceptions],
+        : serializeState({ schedule, slotStepMinutes, horizonDays, capacity, onlineDisabled, exceptions }),
+    [schedule, slotStepMinutes, horizonDays, capacity, onlineDisabled, exceptions],
   );
 
   useEffect(() => {
@@ -346,6 +350,7 @@ export function BookingSettingsForm() {
     setSlotStepMinutes(state.slotStepMinutes);
     setHorizonDays(state.horizonDays);
     setCapacity(state.capacity);
+    setOnlineDisabled(state.onlineDisabled);
     setExceptions(state.exceptions);
     savedRef.current = serializeState(state);
   }, [settings.data]);
@@ -412,6 +417,7 @@ export function BookingSettingsForm() {
       slotStepMinutes,
       horizonDays,
       capacity,
+      onlineDisabled,
       schedule,
       exceptions: exceptionsMap,
     };
@@ -525,6 +531,21 @@ export function BookingSettingsForm() {
         </Text>
       ) : null}
       <section className="flex flex-col gap-4 rounded-xl border border-border bg-panel p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <div className="flex min-w-0 flex-col gap-1">
+            <Text variant="label" className="font-mono uppercase tracking-[0.12em] text-content-dim">
+              Онлайн-запись на сайте
+            </Text>
+            <Text variant="caption" color="dim">
+              Закрытая запись заменяет диалог кнопки «Записаться» на «позвоните нам»
+            </Text>
+          </div>
+          <Checkbox
+            checked={!onlineDisabled}
+            onChange={(checked) => setOnlineDisabled(!checked)}
+            label="Принимаем"
+          />
+        </div>
         <Text variant="label" className="font-mono uppercase tracking-[0.12em] text-content-dim">
           Режим работы по дням недели
         </Text>

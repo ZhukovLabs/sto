@@ -360,6 +360,35 @@
         ]
       }
     },
+    "/requests/{id}": {
+      "delete": {
+        "operationId": "RequestsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Удалить заявку вместе с Telegram-сообщениями",
+        "tags": [
+          "requests"
+        ]
+      }
+    },
     "/bookings/dates": {
       "get": {
         "operationId": "BookingController_dates",
@@ -612,6 +641,35 @@
           }
         ],
         "summary": "Изменить статус записи и синхронизировать Telegram",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/bookings/{id}": {
+      "delete": {
+        "operationId": "BookingController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Удалить запись вместе с Telegram-сообщениями",
         "tags": [
           "bookings"
         ]
@@ -1139,6 +1197,635 @@
         ]
       }
     },
+    "/team": {
+      "get": {
+        "operationId": "TeamController_listPublic",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamMemberViewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Состав команды для сайта (только активные)",
+        "tags": [
+          "team"
+        ]
+      },
+      "post": {
+        "operationId": "TeamController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamMemberBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMemberViewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Добавить участника команды",
+        "tags": [
+          "team"
+        ]
+      }
+    },
+    "/team/all": {
+      "get": {
+        "operationId": "TeamController_listAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamMemberViewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Полный состав команды для админки",
+        "tags": [
+          "team"
+        ]
+      }
+    },
+    "/team/order": {
+      "put": {
+        "operationId": "TeamController_reorder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Порядок участников",
+        "tags": [
+          "team"
+        ]
+      }
+    },
+    "/team/{id}": {
+      "patch": {
+        "operationId": "TeamController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamMemberBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMemberViewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Изменить участника",
+        "tags": [
+          "team"
+        ]
+      },
+      "delete": {
+        "operationId": "TeamController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Удалить участника",
+        "tags": [
+          "team"
+        ]
+      }
+    },
+    "/site-settings": {
+      "get": {
+        "operationId": "SiteSettingsController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Публичные настройки сайта: телефон, адрес, часы работы",
+        "tags": [
+          "site-settings"
+        ]
+      },
+      "patch": {
+        "operationId": "SiteSettingsController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSiteSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Некорректные значения"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Обновить телефон, адрес, УНП и/или координаты на сайте",
+        "tags": [
+          "site-settings"
+        ]
+      }
+    },
+    "/faq": {
+      "get": {
+        "operationId": "FaqController_listPublic",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FaqItemViewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "FAQ для сайта (только активные)",
+        "tags": [
+          "faq"
+        ]
+      },
+      "post": {
+        "operationId": "FaqController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FaqItemBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FaqItemViewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Добавить вопрос",
+        "tags": [
+          "faq"
+        ]
+      }
+    },
+    "/faq/all": {
+      "get": {
+        "operationId": "FaqController_listAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FaqItemViewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Полный FAQ для админки",
+        "tags": [
+          "faq"
+        ]
+      }
+    },
+    "/faq/order": {
+      "put": {
+        "operationId": "FaqController_reorder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FaqOrderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Порядок вопросов",
+        "tags": [
+          "faq"
+        ]
+      }
+    },
+    "/faq/{id}": {
+      "patch": {
+        "operationId": "FaqController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFaqItemBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FaqItemViewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Изменить вопрос",
+        "tags": [
+          "faq"
+        ]
+      },
+      "delete": {
+        "operationId": "FaqController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Удалить вопрос",
+        "tags": [
+          "faq"
+        ]
+      }
+    },
+    "/news": {
+      "get": {
+        "operationId": "NewsController_listPublic",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NewsCardViewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Опубликованные новости для сайта",
+        "tags": [
+          "news"
+        ]
+      },
+      "post": {
+        "operationId": "NewsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewsViewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Создать новость",
+        "tags": [
+          "news"
+        ]
+      }
+    },
+    "/news/all": {
+      "get": {
+        "operationId": "NewsController_listAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NewsViewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Все новости для админки",
+        "tags": [
+          "news"
+        ]
+      }
+    },
+    "/news/by-slug/{slug}": {
+      "get": {
+        "operationId": "NewsController_getBySlug",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewsViewDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Опубликованная новость по слагу",
+        "tags": [
+          "news"
+        ]
+      }
+    },
+    "/news/{id}": {
+      "patch": {
+        "operationId": "NewsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNewsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewsViewDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Изменить новость",
+        "tags": [
+          "news"
+        ]
+      },
+      "delete": {
+        "operationId": "NewsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Удалить новость",
+        "tags": [
+          "news"
+        ]
+      }
+    },
     "/uploads": {
       "post": {
         "operationId": "UploadsController_upload",
@@ -1229,7 +1916,18 @@
               "viber",
               "sms"
             ],
-            "description": "Каналы подтверждений в порядке попытки доставки",
+            "description": "Все каналы в порядке карточки: выключенные сохраняют своё место",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enabled": {
+            "example": [
+              "telegram",
+              "sms"
+            ],
+            "description": "Включённые каналы — участвуют в доставке",
             "type": "array",
             "items": {
               "type": "string"
@@ -1237,7 +1935,8 @@
           }
         },
         "required": [
-          "channelOrder"
+          "channelOrder",
+          "enabled"
         ]
       },
       "LoginRequestDto": {
@@ -1988,6 +2687,393 @@
         "required": [
           "serviceIds"
         ]
+      },
+      "TeamMemberViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Максим"
+          },
+          "role": {
+            "type": "string",
+            "example": "Владелец · мастер"
+          },
+          "spec": {
+            "type": "string",
+            "example": "Принимает машину, считает смету, отвечает за гарантию"
+          },
+          "photo": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/master.webp"
+          },
+          "photoAlt": {
+            "type": "object",
+            "nullable": true,
+            "example": "Максим за стойкой приёмки"
+          },
+          "position": {
+            "type": "number",
+            "example": 0
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "spec",
+          "photo",
+          "photoAlt",
+          "position",
+          "isActive"
+        ]
+      },
+      "CreateTeamMemberBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Максим"
+          },
+          "role": {
+            "type": "string",
+            "example": "Владелец · мастер"
+          },
+          "spec": {
+            "type": "string",
+            "example": "Принимает машину, считает смету, отвечает за гарантию"
+          },
+          "photo": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/master.webp"
+          },
+          "photoAlt": {
+            "type": "object",
+            "nullable": true,
+            "example": "Максим за стойкой приёмки"
+          }
+        },
+        "required": [
+          "name",
+          "role",
+          "spec"
+        ]
+      },
+      "UpdateTeamMemberBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Максим"
+          },
+          "role": {
+            "type": "string",
+            "example": "Владелец · мастер"
+          },
+          "spec": {
+            "type": "string",
+            "example": "Принимает машину, считает смету, отвечает за гарантию"
+          },
+          "photo": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/master.webp"
+          },
+          "photoAlt": {
+            "type": "object",
+            "nullable": true,
+            "example": "Максим за стойкой приёмки"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateSiteSettingsDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "Телефон на сайте",
+            "example": "+375 29 000-00-00"
+          },
+          "address": {
+            "type": "string",
+            "description": "Адрес (пустая строка — сбросить)",
+            "example": "Гомель, ул. Интернациональная 5"
+          },
+          "unp": {
+            "type": "string",
+            "description": "УНП (9 цифр, пустая строка — сбросить)",
+            "example": "390000000"
+          },
+          "lat": {
+            "type": "object",
+            "description": "Широта (пустая строка — сбросить)",
+            "example": 52.4345
+          },
+          "lon": {
+            "type": "object",
+            "description": "Долгота (пустая строка — сбросить)",
+            "example": 30.9754
+          }
+        }
+      },
+      "FaqItemViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "question": {
+            "type": "string",
+            "example": "Нужно ли записываться заранее?"
+          },
+          "answer": {
+            "type": "string",
+            "example": "Да, так мы не заставим машину ждать."
+          },
+          "position": {
+            "type": "number",
+            "example": 0
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "answer",
+          "position",
+          "isActive"
+        ]
+      },
+      "FaqItemBody": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "example": "Нужно ли записываться заранее?"
+          },
+          "answer": {
+            "type": "string",
+            "example": "Да, так мы не заставим машину ждать. Запишитесь онлайн или позвоните."
+          }
+        },
+        "required": [
+          "question",
+          "answer"
+        ]
+      },
+      "FaqOrderBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "UpdateFaqItemBody": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "example": "Нужно ли записываться заранее?"
+          },
+          "answer": {
+            "type": "string",
+            "example": "Да, так мы не заставим машину ждать. Запишитесь онлайн или позвоните."
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "NewsCardViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string",
+            "example": "zimnyaya-podgotovka"
+          },
+          "title": {
+            "type": "string",
+            "example": "Зимняя подготовка: чек-лист"
+          },
+          "excerpt": {
+            "type": "object",
+            "nullable": true,
+            "example": "Что проверить до морозов — коротко."
+          },
+          "cover": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/cover.webp"
+          },
+          "publishedAt": {
+            "type": "object",
+            "nullable": true,
+            "example": "2026-10-13T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-10-13T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "excerpt",
+          "cover",
+          "publishedAt",
+          "updatedAt"
+        ]
+      },
+      "NewsViewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string",
+            "example": "zimnyaya-podgotovka"
+          },
+          "title": {
+            "type": "string",
+            "example": "Зимняя подготовка: чек-лист"
+          },
+          "excerpt": {
+            "type": "object",
+            "nullable": true,
+            "example": "Что проверить до морозов — коротко."
+          },
+          "cover": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/cover.webp"
+          },
+          "publishedAt": {
+            "type": "object",
+            "nullable": true,
+            "example": "2026-10-13T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-10-13T10:00:00.000Z"
+          },
+          "content": {
+            "type": "string",
+            "example": "<h2>Аккумулятор</h2><p>Проверьте напряжение…</p>"
+          },
+          "isPublished": {
+            "type": "boolean",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-10-13T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "excerpt",
+          "cover",
+          "publishedAt",
+          "updatedAt",
+          "content",
+          "isPublished",
+          "createdAt"
+        ]
+      },
+      "NewsBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Зимняя подготовка: чек-лист"
+          },
+          "excerpt": {
+            "type": "string",
+            "example": "Что проверить до морозов — коротко."
+          },
+          "content": {
+            "type": "string",
+            "example": "<h2>Аккумулятор</h2><p>Проверьте напряжение…</p>"
+          },
+          "cover": {
+            "type": "string",
+            "example": "/uploads/8f0c1a2b-4d3e-4f5a-9b6c-1d2e3f4a5b6c.webp"
+          },
+          "isPublished": {
+            "type": "boolean",
+            "example": false
+          },
+          "slug": {
+            "type": "string",
+            "example": "zimnyaya-podgotovka"
+          }
+        },
+        "required": [
+          "title",
+          "content"
+        ]
+      },
+      "UpdateNewsBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Зимняя подготовка: чек-лист"
+          },
+          "excerpt": {
+            "type": "object",
+            "example": "Что проверить до морозов — коротко."
+          },
+          "content": {
+            "type": "string",
+            "example": "<h2>Аккумулятор</h2><p>Проверьте напряжение…</p>"
+          },
+          "cover": {
+            "type": "object",
+            "example": "/uploads/8f0c1a2b-4d3e-4f5a-9b6c-1d2e3f4a5b6c.webp"
+          },
+          "isPublished": {
+            "type": "boolean",
+            "example": false
+          },
+          "slug": {
+            "type": "string",
+            "example": "zimnyaya-podgotovka"
+          }
+        }
       },
       "UploadResponse": {
         "type": "object",
