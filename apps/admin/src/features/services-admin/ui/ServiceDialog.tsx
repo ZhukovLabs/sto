@@ -9,7 +9,7 @@ import {
   type ServiceGroupRow,
   type ServiceRow,
 } from '@/lib/api';
-import { PhotoField } from './PhotoField';
+import { PhotoField } from '@/shared/ui/PhotoField';
 
 export interface ServiceDialogProps {
   open: boolean;

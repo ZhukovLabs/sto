@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Text } from '@sto/ui';
 import { readProxyError } from '@/lib/api';
 
@@ -19,6 +19,14 @@ export function PhotoField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Аплоад может пережить закрытие формы: не дергаем state и onChange после размонтирования.
+  const mountedRef = useRef(true);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
 
   const upload = async (file: File): Promise<void> => {
     if (file.size > MAX_UPLOAD_BYTES) {
@@ -35,11 +43,17 @@ export function PhotoField({
         throw await readProxyError(response, 'Не удалось загрузить файл');
       }
       const body = (await response.json()) as { url: string };
-      onChange(body.url);
+      if (mountedRef.current) {
+        onChange(body.url);
+      }
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : 'Не удалось загрузить файл');
+      if (mountedRef.current) {
+        setError(uploadError instanceof Error ? uploadError.message : 'Не удалось загрузить файл');
+      }
     } finally {
-      setPending(false);
+      if (mountedRef.current) {
+        setPending(false);
+      }
     }
   };
 

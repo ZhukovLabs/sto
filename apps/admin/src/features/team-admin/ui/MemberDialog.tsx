@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { Button, Checkbox, Input, Modal, Text, Textarea } from '@sto/ui';
-import { readProxyError, type TeamMemberRow } from '@/lib/api';
-import { PhotoField } from '@/features/services-admin/ui/PhotoField';
+import type { TeamMemberRow } from '@/lib/api';
+import { apiSend } from '@/shared/api/client';
+import { PhotoField } from '@/shared/ui/PhotoField';
 
 export interface MemberDialogProps {
   open: boolean;
@@ -51,7 +52,7 @@ export function MemberDialog({ open, onClose, onSaved, member }: MemberDialogPro
       return;
     }
     if (form.role.trim().length < 2 || form.role.trim().length > 120) {
-      setError('Роль: от 2 до 120 знаков');
+      setError('Должность: от 2 до 120 знаков');
       return;
     }
     if (form.spec.trim().length < 2) {
@@ -69,14 +70,12 @@ export function MemberDialog({ open, onClose, onSaved, member }: MemberDialogPro
         photoAlt: form.photoAlt.trim() === '' ? null : form.photoAlt.trim(),
         isActive: form.isActive,
       };
-      const response = await fetch(member === null ? '/api/team' : `/api/team/${member.id}`, {
-        method: member === null ? 'POST' : 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) {
-        throw await readProxyError(response, 'Не удалось сохранить участника');
-      }
+      await apiSend(
+        member === null ? '/api/team' : `/api/team/${member.id}`,
+        member === null ? 'POST' : 'PATCH',
+        body,
+        'Не удалось сохранить участника',
+      );
       onSaved();
       onClose();
     } catch (submitError) {
@@ -90,10 +89,19 @@ export function MemberDialog({ open, onClose, onSaved, member }: MemberDialogPro
     <Modal
       open={open}
       onClose={onClose}
-      title={member === null ? 'Новый участник команды' : 'Участник команды'}
+      title={member === null ? 'Новый участник' : 'Участник команды'}
+      description={member === null ? 'Отображается в разделе команды на сайте' : undefined}
       size="md"
     >
-      <div className="flex flex-col gap-4">
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!pending) {
+            void submit();
+          }
+        }}
+      >
         <Input
           id="member-name"
           label="Имя"
@@ -103,8 +111,9 @@ export function MemberDialog({ open, onClose, onSaved, member }: MemberDialogPro
         />
         <Input
           id="member-role"
-          label="Роль (на сайте под именем)"
+          label="Должность"
           placeholder="Мастер-моторист"
+          helper="Показывается на сайте под именем"
           value={form.role}
           maxLength={120}
           onChange={(event) => setForm((prev) => ({ ...prev, role: event.target.value }))}
@@ -125,8 +134,9 @@ export function MemberDialog({ open, onClose, onSaved, member }: MemberDialogPro
         />
         <Input
           id="member-photo-alt"
-          label="Описание фото для скринридеров (необязательно)"
+          label="Описание фото (необязательно)"
           placeholder="Максим за стойкой приёмки"
+          helper="Подпись для скринридеров"
           value={form.photoAlt}
           maxLength={120}
           onChange={(event) => setForm((prev) => ({ ...prev, photoAlt: event.target.value }))}
@@ -142,14 +152,14 @@ export function MemberDialog({ open, onClose, onSaved, member }: MemberDialogPro
           </Text>
         ) : null}
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={onClose}>
             Отмена
           </Button>
-          <Button loading={pending} onClick={() => void submit()}>
+          <Button type="submit" loading={pending}>
             Сохранить
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 }

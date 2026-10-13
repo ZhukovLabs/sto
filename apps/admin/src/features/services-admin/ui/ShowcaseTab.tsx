@@ -196,12 +196,11 @@ export function ShowcaseTab({ catalog, onSaved }: ShowcaseTabProps) {
 
   return (
     <section className="flex flex-col gap-5 rounded-xl border border-border bg-panel p-6">
-      <Text variant="caption" className="font-mono uppercase tracking-[0.12em] text-content-dim">
-        // ВИТРИНА ГЛАВНОЙ — РОВНО {SHOWCASE_SIZE} УСЛУГ
+      <Text variant="caption" color="dim" className="font-mono uppercase tracking-[0.12em]">
+        Витрина главной — {SHOWCASE_SIZE} услуг
       </Text>
       <Text color="dim">
-        Первая услуга — большая карточка с бейджем «Первым 20 — 0 руб.», дальше две средних и пять
-        маленьких. Изменения на сайте появляются сразу после сохранения.
+        Первая услуга — большая карточка, дальше две средних и пять маленьких.
       </Text>
 
       <DndContext
