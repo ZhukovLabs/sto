@@ -5,6 +5,7 @@ import {
   isValidDate,
   isValidTime,
   pruneExceptions,
+  scheduleSummary,
   slotStarts,
   todayIsoMinsk,
   weekdayKeyFor,
@@ -153,5 +154,86 @@ describe('blockedMinutesFor', () => {
         exceptions: { '2026-10-12': { enabled: false, blockedTimes: ['10:00'] } },
       }).size,
     ).toBe(0);
+  });
+});
+
+describe('scheduleSummary', () => {
+  it('дефолтное расписание: Пн–Сб, 09:00–20:00', () => {
+    expect(scheduleSummary(DEFAULT_SCHEDULE)).toEqual({
+      days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'],
+      from: '09:00',
+      to: '20:00',
+    });
+  });
+
+  it('берёт медианы начал и окончаний, а не экстремумы', () => {
+    const off = { enabled: false, from: '09:00', to: '20:00' };
+    const summary = scheduleSummary({
+      mon: { enabled: true, from: '08:00', to: '16:00' },
+      tue: { enabled: true, from: '08:30', to: '20:00' },
+      wed: { enabled: true, from: '10:00', to: '21:00' },
+      thu: off,
+      fri: off,
+      sat: off,
+      sun: off,
+    });
+    expect(summary).toEqual({
+      days: ['mon', 'tue', 'wed'],
+      from: '08:30',
+      to: '20:00',
+    });
+  });
+
+  it('чётное число дней: медиана — среднее двух средних (09:00 и 09:30 → 09:15)', () => {
+    const off = { enabled: false, from: '09:00', to: '20:00' };
+    const summary = scheduleSummary({
+      mon: { enabled: true, from: '09:00', to: '18:00' },
+      tue: { enabled: true, from: '09:30', to: '20:30' },
+      wed: off,
+      thu: off,
+      fri: off,
+      sat: off,
+      sun: off,
+    });
+    expect(summary).toEqual({ days: ['mon', 'tue'], from: '09:15', to: '19:15' });
+  });
+
+  it('один короткий день не сдвигает часы: медиана равна типичному окну', () => {
+    const summary = scheduleSummary({
+      ...DEFAULT_SCHEDULE,
+      wed: { enabled: true, from: '08:30', to: '18:00' },
+      sat: { enabled: true, from: '10:00', to: '21:00' },
+    });
+    expect(scheduleSummary(DEFAULT_SCHEDULE)).toEqual({
+      days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'],
+      from: '09:00',
+      to: '20:00',
+    });
+    expect(summary?.from).toBe('09:00');
+    expect(summary?.to).toBe('20:00');
+  });
+
+  it('учитывает только включённые дни и сортирует их по неделе', () => {
+    const summary = scheduleSummary({
+      ...DEFAULT_SCHEDULE,
+      mon: { enabled: false, from: '09:00', to: '20:00' },
+      sun: { enabled: true, from: '10:00', to: '15:00' },
+    });
+    expect(summary?.days).toEqual(['tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
+  });
+
+  it('все дни выключены — null', () => {
+    const off = { enabled: false, from: '09:00', to: '20:00' };
+    expect(
+      scheduleSummary({
+        mon: off,
+        tue: off,
+        wed: off,
+        thu: off,
+        fri: off,
+        sat: off,
+        sun: off,
+      }),
+    ).toBeNull();
   });
 });

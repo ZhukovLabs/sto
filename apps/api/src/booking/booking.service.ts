@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { publicCreateRateLimiter } from '../auth/rate-limiter';
 import { loadEnv } from '../env';
 import { normalizeBelarusPhone } from '../phones';
+import { notifyWebRevalidate } from '../web-revalidate';
 import { formatBookingConfirmation, NotificationService } from '../notifications';
 import {
   broadcastToMasters,
@@ -107,6 +108,7 @@ export class BookingService {
         slotStepMinutes: 60,
         horizonDays: 14,
         capacity: 1,
+        onlineDisabled: false,
         schedule: DEFAULT_SCHEDULE,
         exceptions: {},
       };
@@ -125,6 +127,7 @@ export class BookingService {
       slotStepMinutes: row.slotStepMinutes,
       horizonDays: row.horizonDays,
       capacity: row.capacity,
+      onlineDisabled: row.onlineDisabled,
       schedule: row.schedule as unknown as ScheduleMap,
       exceptions: pruned,
     };
@@ -134,6 +137,7 @@ export class BookingService {
     slotStepMinutes?: unknown;
     horizonDays?: unknown;
     capacity?: unknown;
+    onlineDisabled?: unknown;
     schedule?: unknown;
     exceptions?: unknown;
   }): Promise<BookingSettingsData> {
@@ -141,6 +145,7 @@ export class BookingService {
       slotStepMinutes?: number;
       horizonDays?: number;
       capacity?: number;
+      onlineDisabled?: boolean;
       schedule?: ScheduleMap;
       exceptions?: ExceptionsMap;
     } = {};
@@ -166,6 +171,12 @@ export class BookingService {
       }
       data.capacity = capacity;
     }
+    if (patch.onlineDisabled !== undefined) {
+      if (typeof patch.onlineDisabled !== 'boolean') {
+        throw new BadRequestException('onlineDisabled должен быть boolean');
+      }
+      data.onlineDisabled = patch.onlineDisabled;
+    }
     if (patch.schedule !== undefined) {
       data.schedule = parseSchedule(patch.schedule);
     }
@@ -180,6 +191,7 @@ export class BookingService {
         slotStepMinutes: data.slotStepMinutes,
         horizonDays: data.horizonDays,
         capacity: data.capacity,
+        onlineDisabled: data.onlineDisabled,
         schedule: data.schedule !== undefined ? toJsonInput(data.schedule) : undefined,
         exceptions: data.exceptions !== undefined ? toJsonInput(data.exceptions) : undefined,
       },
@@ -188,14 +200,18 @@ export class BookingService {
         slotStepMinutes: data.slotStepMinutes ?? current.slotStepMinutes,
         horizonDays: data.horizonDays ?? current.horizonDays,
         capacity: data.capacity ?? current.capacity,
+        onlineDisabled: data.onlineDisabled ?? current.onlineDisabled,
         schedule: toJsonInput(data.schedule ?? current.schedule),
         exceptions: toJsonInput(data.exceptions ?? current.exceptions),
       },
     });
+    // Часы работы на сайте выводятся из расписания записи — сбрасываем кэш веба.
+    notifyWebRevalidate();
     return {
       slotStepMinutes: row.slotStepMinutes,
       horizonDays: row.horizonDays,
       capacity: row.capacity,
+      onlineDisabled: row.onlineDisabled,
       schedule: row.schedule as unknown as ScheduleMap,
       exceptions: row.exceptions as unknown as ExceptionsMap,
     };
@@ -251,6 +267,10 @@ export class BookingService {
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
+    const settings = await this.getSettings();
+    if (settings.onlineDisabled) {
+      throw new BadRequestException('Сейчас мы не принимаем онлайн-запись — позвоните нам');
+    }
     const name = typeof input.name === 'string' ? input.name.trim() : '';
     const phone = typeof input.phone === 'string' ? input.phone.trim() : '';
     const car = cleanOptional(input.car, 60);
@@ -296,7 +316,6 @@ export class BookingService {
       }
     }
 
-    const settings = await this.getSettings();
     const scheduledAt = await this.assertSlotAvailable(input.date, input.time, settings);
 
     const created = await this.prisma.booking
