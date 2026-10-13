@@ -46,9 +46,26 @@ model BookingSettings {
   slotStepMinutes Int      @default(60)
   horizonDays     Int      @default(14)
   capacity        Int      @default(1)
+  /// true — сайт показывает «не принимаем онлайн-запись» вместо диалога записи.
+  onlineDisabled  Boolean  @default(false)
   schedule        Json
   exceptions      Json
   updatedAt       DateTime @updatedAt
+}
+
+/// Публичные настройки сайта (синглтон с фиксированным id).
+model SiteSettings {
+  id        String   @id
+  /// Телефон СТО в E.164 (+375…); null — web использует фолбэк из статики.
+  phone     String?
+  /// Адрес для сайта; null — ещё не задан (web показывает фолбэк).
+  address   String?
+  /// УНП для подвала сайта (9 цифр); null — web использует фолбэк из статики.
+  unp       String?
+  /// Координаты для точечной метки и маршрута; задаются парой.
+  lat       Float?
+  lon       Float?
+  updatedAt DateTime @updatedAt
 }
 
 model Booking {
@@ -146,4 +163,38 @@ model TeamMember {
   updatedAt DateTime @updatedAt
 
   @@index([position])
+}
+
+model FaqItem {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([position])
+}
+
+/// Новости сайта: /news на web. Контент — HTML из RichTextEditor админки.
+model News {
+  id         String    @id @default(uuid())
+  slug       String    @unique
+  title      String
+  /// Короткое описание для карточки в списке и og:description.
+  excerpt    String?
+  /// HTML из редактора; на записи очищается sanitizeHtml.
+  content    String
+  /// Путь вида /uploads/… (обложка карточки и og:image).
+  cover      String?
+  /// Ссылка на первоисточник для автоновостей из RSS; уникальна — защита от дублей.
+  sourceUrl  String?   @unique
+  isPublished Boolean  @default(false)
+  /// Дата публикации для сортировки; ставится при первой публикации.
+  publishedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([isPublished, publishedAt])
 }
