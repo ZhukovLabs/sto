@@ -26,7 +26,7 @@ import {
   Text,
   Textarea,
 } from '@/shared/ui';
-import { site } from '@/shared/config/site';
+import { useSiteInfo, type SitePhone } from '@/entities/site';
 import { isBelarusMobilePhone, looksLikeBelarusPhone } from '@/shared/lib/phone';
 import { AntiAbuseRequiredError } from '@/shared/lib/anti-abuse';
 
@@ -70,7 +70,11 @@ const NAME_MIN_LENGTH = 2;
 /** Фиксированная высота диалога: форма записи не прыгает при переключении табов. */
 const DIALOG_HEIGHT = 'h-[92dvh] sm:h-[864px]';
 
-function validate(form: FormState, mode: Mode): Partial<Record<keyof FormState, ReactNode>> {
+function validate(
+  form: FormState,
+  mode: Mode,
+  sitePhone: SitePhone,
+): Partial<Record<keyof FormState, ReactNode>> {
   const errors: Partial<Record<keyof FormState, ReactNode>> = {};
   const name = form.name.trim();
   if (name.length === 0) {
@@ -85,12 +89,8 @@ function validate(form: FormState, mode: Mode): Partial<Record<keyof FormState, 
       ? 'Номер неполный — пример: +375 29 123-45-67'
       : [
           'Нужен белорусский номер. Или позвоните нам: ',
-          <a
-            key="tel"
-            href={`tel:${site.phones[0].value}`}
-            className="underline underline-offset-2"
-          >
-            {site.phones[0].pretty}
+          <a key="tel" href={`tel:${sitePhone.value}`} className="underline underline-offset-2">
+            {sitePhone.pretty}
           </a>,
         ];
   }
@@ -152,6 +152,7 @@ export function CallbackRequestDialog({
   /** Название услуги из каталога — подставляется в форму и включает режим записи */
   preselectedService?: string | null;
 }) {
+  const { phone: sitePhone, hours: siteHours, bookingOnline } = useSiteInfo();
   const [mode, setMode] = useState<Mode>('callback');
   const [status, setStatus] = useState<Status>('idle');
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -297,7 +298,7 @@ export function CallbackRequestDialog({
   const bookingMutation = useMutation({ mutationFn: submitBookingRequest });
 
   const submit = async (captchaToken?: string | null) => {
-    const nextErrors = validate(form, mode);
+    const nextErrors = validate(form, mode, sitePhone);
     setErrors(nextErrors);
     const hasErrors = Object.values(nextErrors).some(Boolean);
     if (!consent) {
@@ -385,13 +386,29 @@ export function CallbackRequestDialog({
     close();
   };
 
+  // Онлайн-запись закрыта из админки — извиняемся и отправляем к телефону.
+  if (!bookingOnline) {
+    return (
+      <Modal open={open} onClose={onClose} title="Извините" size="sm">
+        <div className="flex flex-col gap-4">
+          <Text variant="body-lg" color="muted">
+            Сейчас мы не принимаем онлайн-запись. Позвоните — подберём время сразу по телефону.
+          </Text>
+          <Button size="lg" href={`tel:${sitePhone.value}`}>
+            Позвонить {sitePhone.pretty}
+          </Button>
+        </div>
+      </Modal>
+    );
+  }
+
   if (status === 'success') {
     return (
       <Modal open={open} onClose={close} title="Заявка принята" size="sm">
         <div className="flex flex-col gap-4">
           <Text variant="body-lg" color="muted">
             {mode === 'callback' ? (
-              `Перезвоним в течение часа в рабочее время (${site.hours.short}).`
+              `Перезвоним в течение часа в рабочее время (${siteHours.short}).`
             ) : (
               <>
                 Ждём вас {selectedDate?.label ?? form.date} к {form.time}. Окончательно подтвердим

@@ -39,7 +39,7 @@ export async function Services() {
   const rowTwo = rest.slice(2);
 
   return (
-    <section id="services" className="border-b border-border">
+    <section id="services" className="scroll-mt-20 border-b border-border sm:scroll-mt-24">
       <Container size="site" className="pt-16 pb-24 lg:pt-[72px]">
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
           <Heading variant="section" font="display" as="h2" className="uppercase">
@@ -126,9 +126,6 @@ function FeaturedCard({ item, className }: { item: ShowcaseItem; className?: str
           />
         </>
       ) : null}
-      <span className="relative inline-flex w-fit items-center gap-1.5 rounded-sm bg-primary px-2 py-1 font-mono text-caption font-bold uppercase tracking-normal text-primary-ink max-sm:self-start sm:absolute sm:top-4 sm:right-4">
-        Первым 20 — 0{' руб.'}
-      </span>
       <span className="relative text-xl font-bold leading-[1.2]">{featured.title}</span>
       <span className="relative text-sm leading-normal text-content-muted">
         {featured.description}

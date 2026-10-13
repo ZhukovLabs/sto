@@ -5,12 +5,12 @@ import { usePathname } from 'next/navigation';
 import { CalendarCheck, Phone } from 'lucide-react';
 import { Button } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
-import { site } from '@/shared/config/site';
+import { useSiteInfo } from '@/entities/site';
 
 const HERO_CTA_SELECTOR = '#hero-cta';
 
 export function MobileActionBar() {
-  const phone = site.phones[0];
+  const { phone } = useSiteInfo();
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 

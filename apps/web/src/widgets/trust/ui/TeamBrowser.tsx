@@ -162,7 +162,7 @@ export function TeamBrowser({ team }: TeamBrowserProps) {
                 fill
                 sizes="(min-width: 1024px) 40vw, 100vw"
                 className={`object-cover transition-[opacity,scale] duration-500 motion-reduce:transition-none ${
-                  index === active ? 'scale-[1.03] opacity-100' : 'scale-100 opacity-0'
+                  index === activeIndex ? 'scale-[1.03] opacity-100' : 'scale-100 opacity-0'
                 }`}
               />
             ),

@@ -25,7 +25,7 @@ const STEPS = [
 
 export function How() {
   return (
-    <section id="how" className="border-b border-border">
+    <section id="how" className="scroll-mt-20 border-b border-border sm:scroll-mt-24">
       <Container size="site" className="py-16 lg:py-[72px]">
         <Heading variant="section" font="display" as="h2" className="uppercase">
           Как мы работаем

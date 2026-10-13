@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { MessageCircle, Send } from 'lucide-react';
 import { site } from '@/shared/config/site';
+import { getSiteInfo } from '@/entities/site';
 import { Container, Heading } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
 import { YandexMap } from './YandexMap';
@@ -8,11 +9,11 @@ import { YandexMap } from './YandexMap';
 const telegramHref = `https://t.me/${site.telegram.replace('@', '')}`;
 const viberHref = `viber://chat?number=%2B${site.viber.replace('+', '')}`;
 
-export function Contacts() {
-  const [phone] = site.phones;
+export async function Contacts() {
+  const { phone, hours, coords } = await getSiteInfo();
 
   return (
-    <section id="contacts" className="border-b border-border">
+    <section id="contacts" className="scroll-mt-20 border-b border-border sm:scroll-mt-24">
       <div className="relative min-h-[560px] overflow-hidden lg:min-h-[640px]">
         <Image
           src="/contacts/workshop.webp"
@@ -27,7 +28,7 @@ export function Contacts() {
         <div className="absolute inset-0 flex flex-col justify-end">
           <Container size="site" className="pb-14 lg:pb-16">
             <span className="font-mono text-caption uppercase tracking-[0.14em] text-content-muted">
-              {site.city} · {site.hours.label} · {site.hours.note}
+              {site.city} · {hours.label} · {hours.note}
             </span>
             <Heading
               variant="display-lg"
@@ -76,8 +77,8 @@ export function Contacts() {
 
       <div className="relative h-[280px] lg:h-[340px]">
         <YandexMap
-          lat={site.map.lat}
-          lon={site.map.lon}
+          lat={coords?.lat ?? site.map.lat}
+          lon={coords?.lon ?? site.map.lon}
           zoom={site.map.zoom}
           title={`${site.name} — ${site.city}`}
         />
