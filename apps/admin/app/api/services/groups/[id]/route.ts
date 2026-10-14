@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE, ApiError, apiDeleteGroup, apiUpdateGroup } from '@/lib/api';
+import { readGroupInput } from '../../validation';
 
 export async function PATCH(
   request: NextRequest,
@@ -19,8 +20,16 @@ export async function PATCH(
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ message: 'Некорректный запрос' }, { status: 400 });
   }
+  const parsed = readGroupInput(body as Record<string, unknown>, true);
+  if (!parsed.ok) {
+    return NextResponse.json({ message: parsed.message }, { status: 400 });
+  }
   try {
-    const group = await apiUpdateGroup(token, id, body as Parameters<typeof apiUpdateGroup>[2]);
+    const group = await apiUpdateGroup(
+      token,
+      id,
+      parsed.input as Parameters<typeof apiUpdateGroup>[2],
+    );
     return NextResponse.json(group);
   } catch (error) {
     const status = error instanceof ApiError ? error.status : 502;

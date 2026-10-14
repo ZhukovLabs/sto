@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE, ApiError, apiCreateService, apiListServices } from '@/lib/api';
+import { readServiceInput } from './validation';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
@@ -29,8 +30,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ message: 'Некорректный запрос' }, { status: 400 });
   }
+  const parsed = readServiceInput(body as Record<string, unknown>);
+  if (!parsed.ok) {
+    return NextResponse.json({ message: parsed.message }, { status: 400 });
+  }
   try {
-    const service = await apiCreateService(token, body as Parameters<typeof apiCreateService>[1]);
+    const service = await apiCreateService(
+      token,
+      parsed.input as Parameters<typeof apiCreateService>[1],
+    );
     return NextResponse.json(service, { status: 201 });
   } catch (error) {
     const status = error instanceof ApiError ? error.status : 502;

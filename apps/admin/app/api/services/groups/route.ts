@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE, ApiError, apiCreateGroup } from '@/lib/api';
+import { readGroupInput } from '../validation';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
@@ -15,8 +16,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ message: 'Некорректный запрос' }, { status: 400 });
   }
+  const parsed = readGroupInput(body as Record<string, unknown>);
+  if (!parsed.ok) {
+    return NextResponse.json({ message: parsed.message }, { status: 400 });
+  }
   try {
-    const group = await apiCreateGroup(token, body as Parameters<typeof apiCreateGroup>[1]);
+    const group = await apiCreateGroup(token, parsed.input as Parameters<typeof apiCreateGroup>[1]);
     return NextResponse.json(group, { status: 201 });
   } catch (error) {
     const status = error instanceof ApiError ? error.status : 502;
