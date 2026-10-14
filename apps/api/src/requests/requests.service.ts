@@ -132,7 +132,22 @@ export class RequestsService {
     return { id: created.id, duplicate: false };
   }
 
-  async list(status?: unknown): Promise<
+  /** Окно выдачи для админки: без потолка список растёт бесконечно. */
+  private static readonly LIST_TAKE_DEFAULT = 200;
+  private static readonly LIST_TAKE_MAX = 500;
+
+  private static clampLimit(limit: unknown): number {
+    const parsed = typeof limit === 'number' ? limit : Number(limit);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return RequestsService.LIST_TAKE_DEFAULT;
+    }
+    return Math.min(Math.trunc(parsed), RequestsService.LIST_TAKE_MAX);
+  }
+
+  async list(
+    status?: unknown,
+    limit?: unknown,
+  ): Promise<
     Array<{
       id: string;
       name: string;
@@ -150,6 +165,7 @@ export class RequestsService {
       where: filter,
       orderBy: { createdAt: 'desc' },
       select: { id: true, name: true, phone: true, comment: true, status: true, createdAt: true },
+      take: RequestsService.clampLimit(limit),
     });
   }
 

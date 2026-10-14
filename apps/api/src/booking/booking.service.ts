@@ -365,7 +365,22 @@ export class BookingService {
     return { id: created.id, duplicate: false };
   }
 
-  async list(status?: unknown): Promise<
+  /** Окно выдачи для админки: без потолка список растёт бесконечно. */
+  private static readonly LIST_TAKE_DEFAULT = 200;
+  private static readonly LIST_TAKE_MAX = 500;
+
+  private static clampLimit(limit: unknown): number {
+    const parsed = typeof limit === 'number' ? limit : Number(limit);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return BookingService.LIST_TAKE_DEFAULT;
+    }
+    return Math.min(Math.trunc(parsed), BookingService.LIST_TAKE_MAX);
+  }
+
+  async list(
+    status?: unknown,
+    limit?: unknown,
+  ): Promise<
     Array<{
       id: string;
       name: string;
@@ -385,6 +400,7 @@ export class BookingService {
     return this.prisma.booking.findMany({
       where: filter,
       orderBy: { createdAt: 'desc' },
+      take: BookingService.clampLimit(limit),
       select: {
         id: true,
         name: true,

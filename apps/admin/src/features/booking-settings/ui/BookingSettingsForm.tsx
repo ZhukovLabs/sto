@@ -22,6 +22,15 @@ const WEEKDAYS: { key: keyof ScheduleMap; label: string; short: string }[] = [
   { key: 'sun', label: 'Воскресенье', short: 'ВС' },
 ];
 
+/** Число из input с зажимом в диапазон: пустое поле/мусор не улетает в автосейв. */
+function parseBounded(raw: string, min: number, max: number, fallback: number): number {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, Math.trunc(parsed)));
+}
+
 const STEP_OPTIONS = [30, 60, 90, 120].map((step) => ({
   value: String(step),
   label: `${step} мин`,
@@ -382,7 +391,10 @@ export function BookingSettingsForm() {
       return false;
     }
     for (const day of Object.values(schedule)) {
-      if (day.enabled && (!TIME_PATTERN.test(day.from) || !TIME_PATTERN.test(day.to))) {
+      if (
+        day.enabled &&
+        (!TIME_PATTERN.test(day.from) || !TIME_PATTERN.test(day.to) || day.from >= day.to)
+      ) {
         return false;
       }
     }
@@ -390,6 +402,21 @@ export function BookingSettingsForm() {
       (row) =>
         !row.enabled ||
         (TIME_PATTERN.test(row.from) && TIME_PATTERN.test(row.to) && row.from < row.to),
+    );
+  }
+
+  /** Числовые параметры валидны: пустое поле или 0 не должны улетать автосейвом. */
+  function numbersValid(): boolean {
+    return (
+      Number.isInteger(slotStepMinutes) &&
+      slotStepMinutes >= 30 &&
+      slotStepMinutes <= 120 &&
+      Number.isInteger(horizonDays) &&
+      horizonDays >= 1 &&
+      horizonDays <= 60 &&
+      Number.isInteger(capacity) &&
+      capacity >= 1 &&
+      capacity <= 10
     );
   }
 
@@ -429,7 +456,12 @@ export function BookingSettingsForm() {
     if (snapshot === null || snapshot === savedRef.current) {
       return;
     }
-    if (duplicateDates.size > 0 || !timesComplete()) {
+    if (duplicateDates.size > 0 || !timesComplete() || !numbersValid()) {
+      return;
+    }
+    // Не складываем параллельные PUT: пока летит прошлый, сервер ещё не знает
+    // о новых правках; после его ответа эффект перезапустится и сохранит свежее.
+    if (mutation.isPending) {
       return;
     }
     const timer = window.setTimeout(() => {
@@ -440,7 +472,8 @@ export function BookingSettingsForm() {
       });
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [snapshot, duplicateDates]);
+    // isPending в deps: по завершении мутации досканиваем несохранённые правки.
+  }, [snapshot, duplicateDates, mutation.isPending]);
 
   if (settings.isPending) {
     return (
@@ -614,7 +647,7 @@ export function BookingSettingsForm() {
             min={1}
             max={60}
             value={String(horizonDays)}
-            onChange={(event) => setHorizonDays(Number(event.target.value))}
+            onChange={(event) => setHorizonDays(parseBounded(event.target.value, 1, 60, 1))}
           />
           <Input
             type="number"
@@ -622,7 +655,7 @@ export function BookingSettingsForm() {
             min={1}
             max={10}
             value={String(capacity)}
-            onChange={(event) => setCapacity(Number(event.target.value))}
+            onChange={(event) => setCapacity(parseBounded(event.target.value, 1, 10, 1))}
           />
         </div>
       </section>
