@@ -94,6 +94,17 @@ export async function apiRefresh(token: string): Promise<{ token: string } | nul
   return (await response.json()) as { token: string };
 }
 
+/** Отзывает сессию на бэкенде (logout). Cookie чистится вызывающим независимо от исхода. */
+export async function apiLogout(token: string): Promise<void> {
+  const response = await fetch(`${API_URL}/auth/logout`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 401) {
+    throw await parseError(response);
+  }
+}
+
 export const REQUEST_STATUSES = ['new', 'called', 'taken', 'cancelled'] as const;
 
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
@@ -118,8 +129,9 @@ export interface RequestRow {
   createdAt: string;
 }
 
-export async function apiListRequests(token: string): Promise<RequestRow[]> {
-  const response = await fetch(`${API_URL}/requests`, {
+export async function apiListRequests(token: string, limit?: number): Promise<RequestRow[]> {
+  const query = limit !== undefined ? `?limit=${encodeURIComponent(limit)}` : '';
+  const response = await fetch(`${API_URL}/requests${query}`, {
     headers: { authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
@@ -254,8 +266,9 @@ export interface BookingRow {
   createdAt: string;
 }
 
-export async function apiListBookings(token: string): Promise<BookingRow[]> {
-  const response = await fetch(`${API_URL}/bookings`, {
+export async function apiListBookings(token: string, limit?: number): Promise<BookingRow[]> {
+  const query = limit !== undefined ? `?limit=${encodeURIComponent(limit)}` : '';
+  const response = await fetch(`${API_URL}/bookings${query}`, {
     headers: { authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
