@@ -203,6 +203,26 @@
         ]
       }
     },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Отозвать текущую сессию (logout)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/requests": {
       "post": {
         "operationId": "RequestsController_create",
@@ -282,6 +302,17 @@
                 "taken",
                 "cancelled"
               ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Окно выдачи, по умолчанию 200",
+            "schema": {
+              "minimum": 1,
+              "maximum": 500,
+              "type": "number"
             }
           }
         ],
@@ -530,6 +561,17 @@
                 "taken",
                 "cancelled"
               ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Окно выдачи, по умолчанию 200",
+            "schema": {
+              "minimum": 1,
+              "maximum": 500,
+              "type": "number"
             }
           }
         ],
@@ -1632,6 +1674,46 @@
         ]
       }
     },
+    "/news/auto": {
+      "post": {
+        "operationId": "NewsController_autoPublish",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Собрать автоновость из RSS через ИИ и опубликовать",
+        "tags": [
+          "news"
+        ]
+      }
+    },
+    "/news/auto/status": {
+      "get": {
+        "operationId": "NewsController_autoStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Состояние автогенерации: идёт ли сейчас и итог прошлого прогона",
+        "tags": [
+          "news"
+        ]
+      }
+    },
     "/news": {
       "get": {
         "operationId": "NewsController_listPublic",
@@ -1741,13 +1823,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NewsViewDto"
+                  "$ref": "#/components/schemas/PublicNewsDto"
                 }
               }
             }
           }
         },
-        "summary": "Опубликованная новость по слагу",
+        "summary": "Опубликованная новость по слагу (без служебных полей)",
         "tags": [
           "news"
         ]
@@ -3011,6 +3093,56 @@
           "content",
           "isPublished",
           "createdAt"
+        ]
+      },
+      "PublicNewsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string",
+            "example": "zimnyaya-podgotovka"
+          },
+          "title": {
+            "type": "string",
+            "example": "Зимняя подготовка: чек-лист"
+          },
+          "excerpt": {
+            "type": "object",
+            "nullable": true,
+            "example": "Что проверить до морозов — коротко."
+          },
+          "cover": {
+            "type": "object",
+            "nullable": true,
+            "example": "/uploads/cover.webp"
+          },
+          "publishedAt": {
+            "type": "object",
+            "nullable": true,
+            "example": "2026-10-13T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-10-13T10:00:00.000Z"
+          },
+          "content": {
+            "type": "string",
+            "example": "<h2>Аккумулятор</h2><p>Проверьте напряжение…</p>"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "excerpt",
+          "cover",
+          "publishedAt",
+          "updatedAt",
+          "content"
         ]
       },
       "NewsBody": {

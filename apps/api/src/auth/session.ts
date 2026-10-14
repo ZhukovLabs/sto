@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 export const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
 /** Остаток срока, при котором токен продлевается при очередном запросе. */
@@ -8,6 +8,9 @@ export interface SessionPayload {
   sub: string;
   iat: number;
   exp: number;
+  /** Уникальный идентификатор выпуска токена: два логина в одну секунду
+   * дают разный jti, поэтому отзыв одного не отзывает другой. */
+  jti: string;
 }
 
 function base64UrlEncode(value: Buffer | string): string {
@@ -33,6 +36,7 @@ export function createSessionToken(userId: string, secret: string, now = Date.no
     sub: userId,
     iat: issuedAt,
     exp: issuedAt + SESSION_TTL_SECONDS,
+    jti: randomBytes(8).toString('hex'),
   };
   const data = base64UrlEncode(JSON.stringify(payload));
   return `${data}.${sign(data, secret)}`;
@@ -63,6 +67,10 @@ export function verifySessionToken(
     typeof payload.exp !== 'number' ||
     payload.exp * 1000 <= now
   ) {
+    return null;
+  }
+  // Старые токены без jti валидны; у новых jti обязателен.
+  if (payload.jti !== undefined && typeof payload.jti !== 'string') {
     return null;
   }
   return payload;

@@ -1,7 +1,8 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AUTH_SECRET } from './auth.constants';
-import { verifyPassword } from './password';
+import { hashPassword, verifyPassword } from './password';
 import { loginRateLimiter } from './rate-limiter';
 import {
   createSessionToken,
@@ -25,8 +26,21 @@ export interface LoginResult {
 
 const GENERIC_LOGIN_ERROR = 'Неверный email или пароль';
 
+/** Кэш фиктивного хэша: ответ на вход с несуществующим email
+ * выполняет тот же scrypt, что и с существующим, — время ответа
+ * не раскрывает перебором, какие адреса зарегистрированы. */
+let dummyHashPromise: Promise<string> | null = null;
+function dummyPasswordHash(): Promise<string> {
+  dummyHashPromise ??= hashPassword(randomUUID());
+  return dummyHashPromise;
+}
+
 @Injectable()
 export class AuthService {
+  /** Отозванные сессии: ключ `${sub}:${iat}` -> exp (сек). Память живёт до
+   * перезапуска процесса — как и in-memory рейт-лимитеры. */
+  private readonly revokedSessions = new Map<string, number>();
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(AUTH_SECRET) private readonly authSecret: string,
@@ -38,7 +52,12 @@ export class AuthService {
     }
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
-    const passwordOk = user !== null && (await verifyPassword(password, user.passwordHash));
+    let passwordOk = false;
+    if (user !== null) {
+      passwordOk = await verifyPassword(password, user.passwordHash);
+    } else {
+      await verifyPassword(password, await dummyPasswordHash());
+    }
     if (user === null || !passwordOk) {
       loginRateLimiter.registerFailure(clientKey);
       throw new UnauthorizedException(GENERIC_LOGIN_ERROR);
@@ -48,7 +67,35 @@ export class AuthService {
   }
 
   verifyToken(token: string): SessionPayload | null {
-    return verifySessionToken(token, this.authSecret);
+    const payload = verifySessionToken(token, this.authSecret);
+    if (payload === null) {
+      return null;
+    }
+    this.pruneRevokedSessions(Date.now());
+    if (this.revokedSessions.has(this.sessionKey(payload))) {
+      return null;
+    }
+    return payload;
+  }
+
+  /** Отзывает сессию (logout): выпущенные токены этой сессии перестают действовать. */
+  revokeSession(payload: SessionPayload): void {
+    this.pruneRevokedSessions(Date.now());
+    this.revokedSessions.set(this.sessionKey(payload), payload.exp);
+  }
+
+  /** jti делает ключ уникальным даже при двух логинах в одну секунду. */
+  private sessionKey(payload: SessionPayload): string {
+    return payload.jti ?? `${payload.sub}:${payload.iat}`;
+  }
+
+  /** Выбрасывает истёкшие записи, чтобы Map не рос бесконечно. */
+  private pruneRevokedSessions(now: number): void {
+    for (const [key, expiresAt] of this.revokedSessions) {
+      if (expiresAt * 1000 <= now) {
+        this.revokedSessions.delete(key);
+      }
+    }
   }
 
   async getUser(userId: string): Promise<AuthedUser | null> {
