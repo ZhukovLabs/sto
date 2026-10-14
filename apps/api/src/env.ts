@@ -1,11 +1,14 @@
 import { z } from 'zod';
 
+/** Дефолтные origin-ы (dev). Экспортированы для фолбэка CORS в main.ts. */
+export const DEFAULT_CORS_ORIGINS = ['http://localhost:3000', 'http://localhost:3001'];
+
 const envSchema = z.object({
   DATABASE_URL: z.string().startsWith('postgresql://'),
   PORT: z.coerce.number().int().positive().default(3002),
   CORS_ORIGINS: z
     .string()
-    .default('http://localhost:3000,http://localhost:3001')
+    .default(DEFAULT_CORS_ORIGINS.join(','))
     .transform((value) =>
       value
         .split(',')

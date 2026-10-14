@@ -51,6 +51,9 @@ async function telegramApi<T>(config: TelegramConfig, method: string, payload: o
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
+    // Без таймаута зависший getUpdates оставляет поллинг включённым навсегда,
+    // а fire-and-forget уведомления копят висящие сокеты.
+    signal: AbortSignal.timeout(30_000),
   });
   if (!response.ok) {
     const body = await response.text().catch(() => '');
