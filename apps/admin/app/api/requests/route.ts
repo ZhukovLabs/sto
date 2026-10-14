@@ -6,8 +6,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!token) {
     return NextResponse.json({ message: 'Не авторизован' }, { status: 401 });
   }
+  // Окно выдачи: без потолка список обращений растёт бесконечно.
+  const limit = Number(request.nextUrl.searchParams.get('limit') ?? '') || 200;
   try {
-    const requests = await apiListRequests(token);
+    const requests = await apiListRequests(token, limit);
     return NextResponse.json(requests);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Не удалось загрузить заявки';

@@ -197,6 +197,8 @@ export function InboxTable() {
   const pendingFor = (id: string) => mutation.isPending && mutation.variables?.id === id;
   const pendingDelete =
     removeMutation.isPending && removeMutation.variables?.id === deleteTarget?.id;
+  // Списки приходят окном (по умолчанию 200): достигли потолка — подсказываем.
+  const capped = (requests.data?.length ?? 0) >= 200 || (bookings.data?.length ?? 0) >= 200;
 
   return (
     <div className="flex flex-col gap-4">
@@ -373,6 +375,12 @@ export function InboxTable() {
           onChange={setPage}
           aria-label="Страницы обращений"
         />
+      ) : null}
+
+      {!loading && capped ? (
+        <Text variant="caption" color="dim">
+          Показаны последние 200 обращений каждого типа — более старые ищите через фильтр статуса.
+        </Text>
       ) : null}
 
       <InboxDetailsDialog
