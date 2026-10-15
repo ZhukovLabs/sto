@@ -32,6 +32,20 @@ export class UpdateSiteSettingsDto {
   unp?: string;
 
   @ApiProperty({
+    description: 'Telegram-аккаунт (пустая строка — сбросить)',
+    required: false,
+    example: '@promaks_sto',
+  })
+  telegram?: string;
+
+  @ApiProperty({
+    description: 'Телефон Viber (пустая строка — сбросить)',
+    required: false,
+    example: '+375 29 000-00-00',
+  })
+  viber?: string;
+
+  @ApiProperty({
     description: 'Широта (пустая строка — сбросить)',
     required: false,
     example: 52.4345,
@@ -58,6 +72,14 @@ export class SiteSettingsResponse {
   /** УНП либо null — не задан, web показывает фолбэк. */
   @ApiProperty({ example: '390000000', nullable: true })
   unp!: string | null;
+
+  /** Telegram вида @username либо null — не задан, web показывает фолбэк. */
+  @ApiProperty({ example: '@promaks_sto', nullable: true })
+  telegram!: string | null;
+
+  /** Viber в E.164 либо null — не задан, web показывает фолбэк. */
+  @ApiProperty({ example: '+375290000000', nullable: true })
+  viber!: string | null;
 
   /** Координаты точки на карте; задаются парой, null — не заданы. */
   @ApiProperty({ example: 52.4345, nullable: true })
@@ -99,6 +121,8 @@ export class SiteSettingsController {
       phone: body.phone,
       address: body.address,
       unp: body.unp,
+      telegram: body.telegram,
+      viber: body.viber,
       lat: body.lat,
       lon: body.lon,
     });

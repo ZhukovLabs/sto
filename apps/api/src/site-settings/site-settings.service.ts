@@ -57,6 +57,21 @@ export function normalizeSiteUnp(input: string): string | null {
 }
 
 /**
+ * Telegram-аккаунт для кнопки на сайте: username без @ либо с @,
+ * сохраняем канонически с @. Пустая строка → null (сброс на фолбэк).
+ */
+export function normalizeSiteTelegram(input: string): string | null {
+  const username = input.trim().replace(/^@+/, '');
+  if (username === '') {
+    return null;
+  }
+  if (!/^[A-Za-z0-9_]{4,32}$/.test(username)) {
+    throw new BadRequestException('Telegram: username 4–32 знака (латиница, цифры, _)');
+  }
+  return `@${username}`;
+}
+
+/**
  * Валидирует пару координат из запроса: число или строка ('' — сброс).
  * Возвращает null, если поле не передано; [null, null] при сбросе.
  */
@@ -95,6 +110,8 @@ export class SiteSettingsService {
     phone: string | null;
     address: string | null;
     unp: string | null;
+    telegram: string | null;
+    viber: string | null;
     lat: number | null;
     lon: number | null;
     bookingOnline: boolean;
@@ -103,7 +120,15 @@ export class SiteSettingsService {
     const [row, bookingSettings] = await Promise.all([
       this.prisma.siteSettings.findUnique({
         where: { id: SETTINGS_ID },
-        select: { phone: true, address: true, unp: true, lat: true, lon: true },
+        select: {
+          phone: true,
+          address: true,
+          unp: true,
+          telegram: true,
+          viber: true,
+          lat: true,
+          lon: true,
+        },
       }),
       this.booking.getSettings(),
     ]);
@@ -111,6 +136,8 @@ export class SiteSettingsService {
       phone: row?.phone ?? null,
       address: row?.address ?? null,
       unp: row?.unp ?? null,
+      telegram: row?.telegram ?? null,
+      viber: row?.viber ?? null,
       lat: row?.lat ?? null,
       lon: row?.lon ?? null,
       bookingOnline: !bookingSettings.onlineDisabled,
@@ -122,6 +149,8 @@ export class SiteSettingsService {
     phone?: unknown;
     address?: unknown;
     unp?: unknown;
+    telegram?: unknown;
+    viber?: unknown;
     lat?: unknown;
     lon?: unknown;
   }): Promise<void> {
@@ -129,6 +158,8 @@ export class SiteSettingsService {
       phone?: string | null;
       address?: string | null;
       unp?: string | null;
+      telegram?: string | null;
+      viber?: string | null;
       lat?: number | null;
       lon?: number | null;
     } = {};
@@ -159,6 +190,27 @@ export class SiteSettingsService {
       }
       data.unp = normalizeSiteUnp(patch.unp);
     }
+    if (patch.telegram !== undefined) {
+      if (typeof patch.telegram !== 'string') {
+        throw new BadRequestException('telegram должен быть строкой');
+      }
+      data.telegram = normalizeSiteTelegram(patch.telegram);
+    }
+    if (patch.viber !== undefined) {
+      if (typeof patch.viber !== 'string') {
+        throw new BadRequestException('viber должен быть строкой');
+      }
+      if (patch.viber.trim() === '') {
+        // Пустое поле — осознанный сброс: сайт покажет фолбэк.
+        data.viber = null;
+      } else {
+        const viber = parsePublicPhone(patch.viber);
+        if (viber === null) {
+          throw new BadRequestException('Viber: 9–15 цифр, например +375 29 000-00-00');
+        }
+        data.viber = viber;
+      }
+    }
     const lat = parseCoord(patch.lat, 'Широта', { min: -90, max: 90 });
     const lon = parseCoord(patch.lon, 'Долгота', { min: -180, max: 180 });
     if (lat !== undefined) {
@@ -177,7 +229,9 @@ export class SiteSettingsService {
       throw new BadRequestException('Широта и долгота сбрасываются вместе');
     }
     if (Object.keys(data).length === 0) {
-      throw new BadRequestException('Нечего обновлять: укажите phone, address, УНП или координаты');
+      throw new BadRequestException(
+        'Нечего обновлять: укажите phone, Telegram, Viber, address, УНП или координаты',
+      );
     }
     await this.prisma.siteSettings.upsert({
       where: { id: SETTINGS_ID },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   normalizeSiteAddress,
+  normalizeSiteTelegram,
   normalizeSiteUnp,
   parseCoord,
   parsePublicPhone,
@@ -66,6 +67,26 @@ describe('normalizeSiteUnp', () => {
     expect(() => normalizeSiteUnp('12345')).toThrow('УНП');
     expect(() => normalizeSiteUnp('1234567890')).toThrow('УНП');
     expect(() => normalizeSiteUnp('УНП скоро')).toThrow('УНП');
+  });
+});
+
+describe('normalizeSiteTelegram', () => {
+  it('принимает username с @ и без, приводит к @', () => {
+    expect(normalizeSiteTelegram('promaks_sto')).toBe('@promaks_sto');
+    expect(normalizeSiteTelegram('@promaks_sto')).toBe('@promaks_sto');
+    expect(normalizeSiteTelegram('  @promaks_sto  ')).toBe('@promaks_sto');
+  });
+
+  it('пустая строка — сброс (null)', () => {
+    expect(normalizeSiteTelegram('')).toBeNull();
+    expect(normalizeSiteTelegram('   ')).toBeNull();
+    expect(normalizeSiteTelegram('@')).toBeNull();
+  });
+
+  it('отклоняет кириллицу, спецзнаки и слишком короткие', () => {
+    expect(() => normalizeSiteTelegram('ab')).toThrow('Telegram');
+    expect(() => normalizeSiteTelegram('прогрев')).toThrow('Telegram');
+    expect(() => normalizeSiteTelegram('has space')).toThrow('Telegram');
   });
 });
 
