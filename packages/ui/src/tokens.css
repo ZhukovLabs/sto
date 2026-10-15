@@ -184,6 +184,41 @@
   }
 }
 
+/*
+ * Появления при докрутке (компонент Reveal): скрытое состояние ставит JS
+ * (data-reveal="hidden"), движение выполняет CSS-переход на композиторе.
+ * Анимируем только transform/opacity/clip-path — без layout и paint.
+ */
+@utility reveal-up {
+  transition:
+    opacity 0.55s var(--ease-out),
+    transform 0.55s var(--ease-out);
+
+  &[data-reveal='hidden'] {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+}
+
+@utility reveal-fade {
+  transition: opacity 0.55s var(--ease-out);
+
+  &[data-reveal='hidden'] {
+    opacity: 0;
+  }
+}
+
+@utility reveal-wipe {
+  /* Видимое состояние — тоже inset: переход inset→inset интерполируется,
+     в отличие от inset→none (тот Chrome переключает мгновенно, без перехода). */
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 0.7s var(--ease-out);
+
+  &[data-reveal='hidden'] {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
 @keyframes shimmer {
   from {
     background-position: 200% 0;

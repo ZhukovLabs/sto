@@ -44,6 +44,8 @@ export type {
 } from './components/Avatar/Avatar';
 export { Divider } from './components/Divider/Divider';
 export type { DividerProps } from './components/Divider/Divider';
+export { Reveal } from './components/Reveal/Reveal';
+export type { RevealProps, RevealVariant } from './components/Reveal/Reveal';
 export { Container } from './components/Container/Container';
 export type { ContainerProps, ContainerSize } from './components/Container/Container';
 export { Input } from './components/Input/Input';
