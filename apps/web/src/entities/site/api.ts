@@ -10,6 +10,8 @@ export const SITE_INFO_FALLBACK: SiteInfo = {
   hours: { label: site.hours.label, short: site.hours.short, note: site.hours.note },
   address: { value: site.address, isSet: false },
   unp: site.unp,
+  telegram: site.telegram,
+  viber: { value: site.viber, pretty: prettyPhoneValue(site.viber) },
   bookingOnline: true,
   coords: null,
 };
@@ -31,6 +33,8 @@ export async function getSiteInfo(): Promise<SiteInfo> {
       phone: string | null;
       address: string | null;
       unp: string | null;
+      telegram: string | null;
+      viber: string | null;
       lat: number | null;
       lon: number | null;
       bookingOnline?: boolean;
@@ -47,6 +51,14 @@ export async function getSiteInfo(): Promise<SiteInfo> {
           ? { value: body.address, isSet: true }
           : SITE_INFO_FALLBACK.address,
       unp: body.unp !== null && body.unp.trim() !== '' ? body.unp : SITE_INFO_FALLBACK.unp,
+      telegram:
+        body.telegram !== null && body.telegram.trim() !== ''
+          ? body.telegram
+          : SITE_INFO_FALLBACK.telegram,
+      viber:
+        body.viber !== null && body.viber.trim() !== ''
+          ? { value: body.viber, pretty: prettyPhoneValue(body.viber) }
+          : SITE_INFO_FALLBACK.viber,
       bookingOnline: body.bookingOnline !== false,
       coords:
         typeof body.lat === 'number' && typeof body.lon === 'number'

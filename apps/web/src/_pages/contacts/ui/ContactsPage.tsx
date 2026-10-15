@@ -5,11 +5,10 @@ import { Breadcrumbs, Container, Heading, Text } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
 import { YandexMap } from '@/widgets/contacts';
 
-const telegramHref = `https://t.me/${site.telegram.replace('@', '')}`;
-const viberHref = `viber://chat?number=%2B${site.viber.replace('+', '')}`;
-
 export async function ContactsPage() {
-  const { phone, hours, address, coords } = await getSiteInfo();
+  const { phone, hours, address, coords, telegram, viber } = await getSiteInfo();
+  const telegramHref = `https://t.me/${telegram.replace('@', '')}`;
+  const viberHref = `viber://chat?number=${encodeURIComponent(viber.value)}`;
   const map = coords ?? { lat: site.map.lat, lon: site.map.lon };
 
   return (
@@ -62,10 +61,10 @@ export async function ContactsPage() {
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2 border-t border-primary-ink pt-4">
                 <a href={telegramHref} className="font-semibold text-primary-ink hover:underline">
-                  Telegram — {site.telegram}
+                  Telegram — {telegram}
                 </a>
                 <a href={viberHref} className="font-semibold text-primary-ink hover:underline">
-                  Viber — {phone.pretty}
+                  Viber — {viber.pretty}
                 </a>
               </div>
               <span className="font-mono text-caption leading-relaxed tracking-[0.08em] text-primary-ink">
