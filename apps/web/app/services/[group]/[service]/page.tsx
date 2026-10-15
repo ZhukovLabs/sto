@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: ServicePageProps): Promise<Me
     description:
       summary !== ''
         ? `${summary.slice(0, 150)}… Цена от ${service.priceFrom} Б, запись онлайн.`
-        : `${service.title} в автосервисе «ПроМакс», Гомель. Цена от ${service.priceFrom} Б, запись онлайн, гарантия 6 месяцев.`,
+        : `${service.title} в автосервисе «ПроМакс», Гомель. Цена от ${service.priceFrom} Б, запись онлайн, гарантия 3 месяца или 5 000 км.`,
   };
 }
 

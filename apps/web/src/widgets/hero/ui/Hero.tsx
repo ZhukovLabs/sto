@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 import { Button, Container, Heading, Text } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
@@ -36,9 +35,9 @@ export async function Hero() {
               className="max-w-[552px] text-balance animate-rise [animation-delay:260ms] motion-reduce:animate-none"
             >
               <span className="text-primary">Автосервис в Гомеле</span>: замена масла,{' '}
-              <span className="text-primary">ремонт двигателя, тормозов и подвески</span>. Смету
-              считаем, прежде чем тронуть машину. Нашли то, чего нет в смете? Сначала спросим вас.
-              Молчаливых доплат не будет.
+              <span className="text-primary">ремонт двигателя, тормозов и подвески</span>. Сначала{' '}
+              <span className="text-primary">письменная смета</span> — потом ремонт. Нашли сверх
+              сметы? Позвоним и спросим. Молчаливых доплат не будет.
             </Text>
 
             <div className="flex animate-rise flex-col items-stretch gap-3 [animation-delay:380ms] sm:flex-row sm:flex-wrap sm:items-center sm:gap-3.5 motion-reduce:animate-none">
@@ -50,7 +49,8 @@ export async function Hero() {
               </Button>
             </div>
 
-            <Link
+            {/* Внешняя ссылка на карты (или /contacts, пока адрес не задан) — обычный <a>, не next/link. */}
+            <a
               href={addressHref}
               {...(address.isSet
                 ? {
@@ -64,7 +64,7 @@ export async function Hero() {
             >
               <MapPin className="size-4 shrink-0" aria-hidden="true" strokeWidth={1.8} />
               {address.value}
-            </Link>
+            </a>
           </div>
 
           <div className="relative -left-4 w-[calc(100%+2rem)] aspect-[4/3] animate-photo-in overflow-hidden rounded-none border border-border [animation-delay:150ms] max-sm:border-x-0 sm:left-0 sm:w-auto sm:aspect-[552/539] sm:rounded-2xl motion-reduce:animate-none">
