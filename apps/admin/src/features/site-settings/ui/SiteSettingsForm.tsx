@@ -28,19 +28,42 @@ interface SavePatch {
   phone?: string;
   address?: string;
   unp?: string;
+  telegram?: string;
+  viber?: string;
   lat?: string;
   lon?: string;
 }
+
+type FieldKey = 'phone' | 'address' | 'unp' | 'telegram' | 'viber' | 'lat' | 'lon';
+
+const NO_TOUCHED: Record<FieldKey, boolean> = {
+  phone: false,
+  address: false,
+  unp: false,
+  telegram: false,
+  viber: false,
+  lat: false,
+  lon: false,
+};
 
 export function SiteSettingsForm(): React.JSX.Element {
   const queryClient = useQueryClient();
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [unp, setUnp] = useState('');
+  const [telegram, setTelegram] = useState('');
+  const [viber, setViber] = useState('');
   const [lat, setLat] = useState('');
   const [lon, setLon] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // Трогал ли админ поле: единственный сигнал для синхронизации из кверя.
+  // Сравнение «state vs data» не годится: до первой синхронизации пустое поле
+  // выглядит изменённым, и данные никогда не загрузятся (и сотрутся при сохранении).
+  const [touched, setTouched] = useState(NO_TOUCHED);
+  const markTouched = (field: FieldKey): void => {
+    setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  };
 
   const settings = useQuery({
     queryKey: SITE_SETTINGS_KEY,
@@ -48,27 +71,33 @@ export function SiteSettingsForm(): React.JSX.Element {
   });
 
   // Рефетч (фокус окна, invalidate после сохранения) не должен затирать правки:
-  // каждое поле синхронизируется, только пока админ его не трогал.
+  // каждое поле синхронизируется, пока админ его не трогал.
   useEffect(() => {
     if (settings.data === undefined) {
       return;
     }
-    if (!phoneDirty) {
+    if (!touched.phone) {
       setPhone(settings.data.phone === null ? '' : prettyPhone(settings.data.phone));
     }
-    if (!addressDirty) {
+    if (!touched.address) {
       setAddress(settings.data.address ?? '');
     }
-    if (!unpDirty) {
+    if (!touched.unp) {
       setUnp(settings.data.unp ?? '');
     }
-    if (!latDirty) {
+    if (!touched.telegram) {
+      setTelegram(settings.data.telegram ?? '');
+    }
+    if (!touched.viber) {
+      setViber(settings.data.viber === null ? '' : prettyPhone(settings.data.viber));
+    }
+    if (!touched.lat) {
       setLat(settings.data.lat === null ? '' : String(settings.data.lat));
     }
-    if (!lonDirty) {
+    if (!touched.lon) {
       setLon(settings.data.lon === null ? '' : String(settings.data.lon));
     }
-    // Политика «не затирать правки»: dirty-флаги здесь намеренно не в deps.
+    // touched здесь намеренно не в deps: синхронизируем только приход данных.
   }, [settings.data]);
 
   const save = useMutation({
@@ -77,6 +106,8 @@ export function SiteSettingsForm(): React.JSX.Element {
     onSuccess: () => {
       setError(null);
       setSaved(true);
+      // Сохранённое серверу известно — можно снова синхронизироваться из кверя.
+      setTouched(NO_TOUCHED);
       void queryClient.invalidateQueries({ queryKey: SITE_SETTINGS_KEY });
     },
     onError: (mutationError: Error) => {
@@ -95,9 +126,13 @@ export function SiteSettingsForm(): React.JSX.Element {
   const phoneDirty = canonicalPhone(phone) !== (settings.data?.phone ?? '');
   const addressDirty = address.trim() !== (settings.data?.address ?? '');
   const unpDirty = unp.trim() !== (settings.data?.unp ?? '');
+  const telegramDirty =
+    telegram.trim().replace(/^@+/, '') !== (settings.data?.telegram ?? '').replace(/^@+/, '');
+  const viberDirty = canonicalPhone(viber) !== (settings.data?.viber ?? '');
   const latDirty = lat.trim() !== (settings.data?.lat === null ? '' : String(settings.data?.lat));
   const lonDirty = lon.trim() !== (settings.data?.lon === null ? '' : String(settings.data?.lon));
-  const dirty = phoneDirty || addressDirty || unpDirty || latDirty || lonDirty;
+  const dirty =
+    phoneDirty || addressDirty || unpDirty || telegramDirty || viberDirty || latDirty || lonDirty;
 
   const previewLat = parseCoordInput(lat, -90, 90);
   const previewLon = parseCoordInput(lon, -180, 180);
@@ -144,6 +179,28 @@ export function SiteSettingsForm(): React.JSX.Element {
       }
       patch.unp = unp.trim();
     }
+    if (telegramDirty) {
+      const username = telegram.trim().replace(/^@+/, '');
+      // Пустое поле — осознанный сброс: сайт покажет фолбэк.
+      if (username !== '' && !/^[A-Za-z0-9_]{4,32}$/.test(username)) {
+        setError('Telegram: username 4–32 знака (латиница, цифры, _)');
+        return;
+      }
+      patch.telegram = username;
+    }
+    if (viberDirty) {
+      // Пустое поле — осознанный сброс: сайт покажет фолбэк.
+      if (viber.trim() === '') {
+        patch.viber = '';
+      } else {
+        const digits = viber.trim().replace(/\D/g, '');
+        if (digits.length < 9 || digits.length > 15) {
+          setError('Viber: 9–15 цифр, например +375 29 000-00-00');
+          return;
+        }
+        patch.viber = viber.trim();
+      }
+    }
     if (latDirty || lonDirty) {
       const cleanLat = lat.trim();
       const cleanLon = lon.trim();
@@ -176,6 +233,7 @@ export function SiteSettingsForm(): React.JSX.Element {
             inputMode="tel"
             value={phone}
             onChange={(event) => {
+              markTouched('phone');
               setPhone(event.target.value);
               setError(null);
             }}
@@ -187,6 +245,7 @@ export function SiteSettingsForm(): React.JSX.Element {
             maxLength={200}
             value={address}
             onChange={(event) => {
+              markTouched('address');
               setAddress(event.target.value);
               setError(null);
             }}
@@ -199,10 +258,36 @@ export function SiteSettingsForm(): React.JSX.Element {
             maxLength={20}
             value={unp}
             onChange={(event) => {
+              markTouched('unp');
               setUnp(event.target.value);
               setError(null);
             }}
           />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              id="site-telegram"
+              label="Telegram"
+              placeholder="@promaks_sto"
+              value={telegram}
+              onChange={(event) => {
+                markTouched('telegram');
+                setTelegram(event.target.value);
+                setError(null);
+              }}
+            />
+            <Input
+              id="site-viber"
+              label="Viber"
+              placeholder="+375 29 000-00-00"
+              inputMode="tel"
+              value={viber}
+              onChange={(event) => {
+                markTouched('viber');
+                setViber(event.target.value);
+                setError(null);
+              }}
+            />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Input
               id="site-lat"
@@ -211,6 +296,7 @@ export function SiteSettingsForm(): React.JSX.Element {
               inputMode="decimal"
               value={lat}
               onChange={(event) => {
+                markTouched('lat');
                 setLat(event.target.value);
                 setError(null);
               }}
@@ -222,6 +308,7 @@ export function SiteSettingsForm(): React.JSX.Element {
               inputMode="decimal"
               value={lon}
               onChange={(event) => {
+                markTouched('lon');
                 setLon(event.target.value);
                 setError(null);
               }}

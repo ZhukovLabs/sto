@@ -818,6 +818,10 @@ export interface SiteSettingsRow {
   address: string | null;
   /** УНП (9 цифр) либо null — не задан, web показывает фолбэк. */
   unp: string | null;
+  /** Telegram вида @username либо null — не задан, web показывает фолбэк. */
+  telegram: string | null;
+  /** Viber в E.164 либо null — не задан, web показывает фолбэк. */
+  viber: string | null;
   /** Координаты задаются парой; null — не заданы. */
   lat: number | null;
   lon: number | null;
@@ -842,6 +846,8 @@ export async function apiUpdateSiteSettings(
     phone?: string;
     address?: string;
     unp?: string;
+    telegram?: string;
+    viber?: string;
     lat?: number | string;
     lon?: number | string;
   },

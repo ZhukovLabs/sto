@@ -24,6 +24,8 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     phone?: unknown;
     address?: unknown;
     unp?: unknown;
+    telegram?: unknown;
+    viber?: unknown;
     lat?: unknown;
     lon?: unknown;
   } | null;
@@ -31,11 +33,13 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     phone?: string;
     address?: string;
     unp?: string;
+    telegram?: string;
+    viber?: string;
     lat?: number | string;
     lon?: number | string;
   } = {};
-  // Пустая строка у телефона/адреса/УНП — осознанный сброс, передаём как есть.
-  for (const key of ['address', 'unp'] as const) {
+  // Пустая строка у телефона/адреса/УНП/Telegram/Viber — осознанный сброс, передаём как есть.
+  for (const key of ['address', 'unp', 'telegram', 'viber'] as const) {
     const value = body?.[key];
     if (typeof value === 'string') {
       patch[key] = value;
@@ -52,7 +56,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
   }
   if (Object.keys(patch).length === 0) {
     return NextResponse.json(
-      { message: 'Укажите телефон, адрес, УНП или координаты' },
+      { message: 'Укажите телефон, Telegram, Viber, адрес, УНП или координаты' },
       { status: 400 },
     );
   }
