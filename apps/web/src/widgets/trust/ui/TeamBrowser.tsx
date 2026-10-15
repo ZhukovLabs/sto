@@ -115,7 +115,6 @@ export function TeamBrowser({ team }: TeamBrowserProps) {
               id={`team-tab-${index}`}
               aria-controls="team-window"
               tabIndex={isActive ? 0 : -1}
-              onMouseEnter={() => setActive(index)}
               onFocus={() => setActive(index)}
               onClick={() => setActive(index)}
               className="group relative flex w-full flex-wrap items-center gap-x-4 gap-y-1 border-b border-border py-5 pl-4 pr-4 text-left sm:gap-x-5 sm:pl-5 sm:pr-5"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CalendarCheck, Menu, Phone, X } from 'lucide-react';
@@ -10,89 +10,40 @@ import { useSiteInfo } from '@/entities/site';
 import { site } from '@/shared/config/site';
 import { LogoMark } from '@/shared/brand/LogoMark';
 
+/** У каждого пункта своя страница: подсветка только по pathname. */
 const NAV_ITEMS = [
   {
     href: '/services',
     label: 'Услуги и цены',
     match: (p: string) => p.startsWith('/services'),
-    section: 'services',
   },
-  { href: '/#trust', label: 'Гарантия', match: () => false, section: 'trust' },
+  {
+    href: '/team',
+    label: 'Команда',
+    match: (p: string) => p.startsWith('/team'),
+  },
   {
     href: '/news',
     label: 'Новости',
     match: (p: string) => p.startsWith('/news'),
-    section: 'news',
   },
   {
     href: '/contacts',
     label: 'Контакты',
     match: (p: string) => p === '/contacts',
-    section: 'contacts',
   },
 ] as const;
 
 type NavItem = (typeof NAV_ITEMS)[number];
 
-/** Якорные пункты («/#…») скроллим через JS: повторный клик снова прокручивает к секции. */
-const isAnchorItem = (item: NavItem): boolean => item.href.startsWith('/#');
-
 export function Header() {
   const { phone, hours } = useSiteInfo();
   const pathname = usePathname();
-  const [activeSection, setActiveSection] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
 
-  // Scroll-spy: подсвечивает якорные пункты («Как работаем», «Гарантия» и др.),
-  // когда соответствующая секция попадает в верхнюю треть экрана.
-  useEffect(() => {
-    setActiveSection(null);
-    const sections = NAV_ITEMS.map((item) => document.getElementById(item.section)).filter(
-      (el): el is HTMLElement => el !== null,
-    );
-    if (sections.length === 0) {
-      return;
-    }
-    const visible = new Set<string>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            visible.add(entry.target.id);
-          } else {
-            visible.delete(entry.target.id);
-          }
-        }
-        const current = sections.find((el) => visible.has(el.id));
-        setActiveSection(current === undefined ? null : current.id);
-      },
-      { rootMargin: '-35% 0px -55% 0px' },
-    );
-    for (const el of sections) {
-      observer.observe(el);
-    }
-    return () => observer.disconnect();
-  }, [pathname]);
+  const isActive = (item: NavItem): boolean => item.match(pathname);
 
-  const isActive = (item: NavItem): boolean =>
-    item.match(pathname) || (activeSection !== null && item.section === activeSection);
-
-  const scrollToSection =
-    (item: NavItem) =>
-    (event: MouseEvent<HTMLAnchorElement>): void => {
-      if (pathname !== '/') {
-        return; // с другой страницы — обычная навигация на главную с hash
-      }
-      const target = document.getElementById(item.section);
-      if (target === null) {
-        return;
-      }
-      event.preventDefault();
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-      window.history.replaceState(null, '', item.href);
-    };
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -134,10 +85,7 @@ export function Header() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    onClick={isAnchorItem(item) ? scrollToSection(item) : undefined}
-                    aria-current={
-                      isActive(item) ? (item.match(pathname) ? 'page' : 'true') : undefined
-                    }
+                    aria-current={isActive(item) ? 'page' : undefined}
                     className={`relative py-1 text-center text-body font-medium transition-colors hover:text-content ${
                       isActive(item) ? 'text-content' : 'text-content-muted'
                     }`}
@@ -200,15 +148,8 @@ export function Header() {
               <li key={item.href} className="border-b border-border last:border-b-0">
                 <Link
                   href={item.href}
-                  aria-current={
-                    isActive(item) ? (item.match(pathname) ? 'page' : 'true') : undefined
-                  }
-                  onClick={(event) => {
-                    setMenuOpen(false);
-                    if (isAnchorItem(item)) {
-                      scrollToSection(item)(event);
-                    }
-                  }}
+                  aria-current={isActive(item) ? 'page' : undefined}
+                  onClick={() => setMenuOpen(false)}
                   className={`flex items-center justify-between py-4 text-body-lg transition-colors ${
                     isActive(item) ? 'text-content' : 'text-content-muted hover:text-content'
                   }`}
