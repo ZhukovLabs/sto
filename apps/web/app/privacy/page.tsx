@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Breadcrumbs, Container, Heading, Text } from '@/shared/ui';
+import { getSiteInfo } from '@/entities/site';
 import { site } from '@/shared/config/site';
 
 export const metadata: Metadata = {
@@ -30,6 +31,14 @@ const PROCESSING_LABELS = [
   ['Срок хранения', 'term'],
 ] as const;
 
+interface ContactsData {
+  phonePretty: string;
+  telegram: string;
+  viberPretty: string;
+  unp: string;
+  address: string;
+}
+
 const SECTIONS: PolicySection[] = [
   {
     title: '1. Общие положения',
@@ -38,14 +47,6 @@ const SECTIONS: PolicySection[] = [
       'Политика разъясняет, как, для каких целей и на каком правовом основании собираются, используются и обрабатываются персональные данные, а также какие права есть у субъектов персональных данных и как эти права реализовать.',
       'Политика применяется к обработке персональных данных клиентов и потенциальных клиентов СТО «ПроМакс»: посетителей сайта, лиц, обращающихся по телефону и в мессенджеры, а также лиц, заключающих либо заключивших с нами договоры на оказание услуг по ремонту и обслуживанию автомобилей.',
       'Политика не применяется к обработке персональных данных работников (это регулируется отдельными документами) и не охватывает видеонаблюдение в производственных помещениях — при его введении будет издан отдельный документ.',
-    ],
-  },
-  {
-    title: '2. Оператор и ответственное лицо',
-    paragraphs: [
-      `Оператор — ${site.legalName}. УНП ${site.unp}. Местонахождение: ${site.address}.`,
-      `Сайт: настоящая Политика опубликована на официальном сайте СТО «ПроМакс». Телефоны: ${site.phones.map((p) => p.pretty).join(', ')}. Telegram: ${site.telegram}.`,
-      'Ответственным за осуществление внутреннего контроля за обработкой персональных данных назначен владелец СТО. По вопросам обработки персональных данных, включая разъяснение положений настоящей Политики и содействие в реализации прав, можно обращаться по указанным выше телефонам и в Telegram.',
     ],
   },
   {
@@ -140,8 +141,32 @@ const SECTIONS: PolicySection[] = [
   },
 ];
 
-export default function PrivacyPage() {
-  const phone = site.phones[0];
+/** Раздел «Оператор» строится из актуальных настроек сайта. */
+function operatorSection(contacts: ContactsData): PolicySection {
+  return {
+    title: '2. Оператор и ответственное лицо',
+    paragraphs: [
+      `Оператор — ${site.legalName}.${contacts.unp !== '' ? ` УНП ${contacts.unp}.` : ''} Местонахождение: ${contacts.address}.`,
+      `Сайт: настоящая Политика опубликована на официальном сайте СТО «ПроМакс». Телефон: ${contacts.phonePretty}. Telegram: ${contacts.telegram}. Viber: ${contacts.viberPretty}.`,
+      'Ответственным за осуществление внутреннего контроля за обработкой персональных данных назначен владелец СТО. По вопросам обработки персональных данных, включая разъяснение положений настоящей Политики и содействие в реализации прав, можно обращаться по указанным выше телефонам и в Telegram.',
+    ],
+  };
+}
+
+export default async function PrivacyPage() {
+  const { phone, telegram, viber, unp, address } = await getSiteInfo();
+  // Порядок фиксирован нумерацией: 1 — статичный, 2 — оператор из настроек, далее статичные.
+  const sections = [
+    SECTIONS[0],
+    operatorSection({
+      phonePretty: phone.pretty,
+      telegram,
+      viberPretty: viber.pretty,
+      unp,
+      address: address.value,
+    }),
+    ...SECTIONS.slice(1),
+  ];
 
   return (
     <main>
@@ -159,7 +184,7 @@ export default function PrivacyPage() {
         </Text>
 
         <div className="mt-10 flex flex-col gap-9">
-          {SECTIONS.map((section) => (
+          {sections.map((section) => (
             <section key={section.title} className="flex flex-col gap-3.5">
               <Text
                 variant="caption"

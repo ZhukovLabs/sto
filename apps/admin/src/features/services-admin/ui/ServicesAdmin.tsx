@@ -20,8 +20,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { EyeOff, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
-import { Badge, Button, Input, Tabs, TabsContent, TabsList, TabsTrigger, Text } from '@sto/ui';
+import { EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Badge, Button, Tabs, TabsContent, TabsList, TabsTrigger, Text } from '@sto/ui';
 import {
   SERVICE_UNIT_LABELS,
   readProxyError,
@@ -29,6 +29,10 @@ import {
   type ServiceRow,
   type ServicesCatalog,
 } from '@/lib/api';
+import { pluralRu } from '@/shared/lib/plural';
+import { useUrlTab } from '@/shared/lib/use-url-tab';
+import { EmptyState } from '@/shared/ui/EmptyState';
+import { SearchInput } from '@/shared/ui/SearchInput';
 import { GroupDialog } from './GroupDialog';
 import { ServiceDialog } from './ServiceDialog';
 import { ShowcaseTab } from './ShowcaseTab';
@@ -78,12 +82,10 @@ function DragHandle(): React.JSX.Element {
   );
 }
 
+const SERVICE_FORMS = ['услуга', 'услуги', 'услуг'] as const;
+
 function servicePlural(count: number): string {
-  const last = count % 10;
-  const lastTwo = count % 100;
-  if (last === 1 && lastTwo !== 11) return 'услуга';
-  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return 'услуги';
-  return 'услуг';
+  return pluralRu(count, SERVICE_FORMS);
 }
 
 function SortableGroupListItem({
@@ -265,10 +267,10 @@ function SortableServiceRow({
   );
 }
 
-export function ServicesAdmin() {
+export function ServicesAdmin({ initialTab = 'catalog' }: { initialTab?: string }) {
   const queryClient = useQueryClient();
   const catalog = useQuery({ queryKey: ['admin-services'], queryFn: fetchCatalog });
-  const [tab, setTab] = useState('catalog');
+  const [tab, setTab] = useUrlTab(initialTab, ['catalog', 'showcase']);
 
   const [serviceDialog, setServiceDialog] = useState<{
     open: boolean;
@@ -488,27 +490,12 @@ export function ServicesAdmin() {
 
         <TabsContent value="catalog">
           <div className="flex flex-col gap-5">
-            <div className="relative w-full sm:max-w-64">
-              <Input
-                size="sm"
-                leftIcon={<Search className="size-4" aria-hidden="true" />}
-                placeholder="Поиск услуги"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                aria-label="Поиск услуги"
-                className="w-full"
-              />
-              {query !== '' ? (
-                <button
-                  type="button"
-                  onClick={() => setQuery('')}
-                  aria-label="Очистить поиск"
-                  className="absolute right-2.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-content-dim transition-colors hover:bg-panel-2 hover:text-content"
-                >
-                  <X className="size-3.5" aria-hidden="true" />
-                </button>
-              ) : null}
-            </div>
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder="Поиск услуги"
+              aria-label="Поиск услуги"
+            />
 
             <DndContext
               id="services-order"
@@ -609,20 +596,19 @@ export function ServicesAdmin() {
                     )}
                   </div>
                 ) : selectedGroup === null ? (
-                  <div className="rounded-xl border border-dashed border-border-strong px-6 py-12 text-center">
-                    <Text variant="body" color="muted">
-                      Групп пока нет — создайте первую.
-                    </Text>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="mt-4"
-                      onClick={() => setGroupDialog({ open: true, group: null })}
-                    >
-                      <Plus className="size-3.5" aria-hidden="true" />
-                      Группа
-                    </Button>
-                  </div>
+                  <EmptyState
+                    title="Групп пока нет — создайте первую."
+                    action={
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setGroupDialog({ open: true, group: null })}
+                      >
+                        <Plus className="size-3.5" aria-hidden="true" />
+                        Группа
+                      </Button>
+                    }
+                  />
                 ) : (
                   <section className="flex min-w-0 flex-col gap-5 rounded-xl border border-border bg-panel p-6 sm:p-7">
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">

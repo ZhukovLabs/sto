@@ -43,6 +43,8 @@ export interface BookingSettingsData {
   slotStepMinutes: number;
   horizonDays: number;
   capacity: number;
+  /// true — онлайн-запись на сайте закрыта.
+  onlineDisabled: boolean;
   schedule: ScheduleMap;
   exceptions: ExceptionsMap;
 }
@@ -128,6 +130,37 @@ export function slotStarts(window: { from: string; to: string }, stepMinutes: nu
     starts.push(start);
   }
   return starts;
+}
+
+const WEEKDAYS_ORDER: readonly WeekdayKey[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+export interface ScheduleSummary {
+  /** Включённые дни, mon…sun по порядку недели. */
+  days: WeekdayKey[];
+  /** Медиана начал среди включённых дней. */
+  from: string;
+  /** Медиана окончаний среди включённых дней. */
+  to: string;
+}
+
+/** Медиана списка минут: для чётного числа — среднее двух средних, округлённое до минуты. */
+function medianMinutes(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[middle]
+    : Math.round((sorted[middle - 1] + sorted[middle]) / 2);
+}
+
+/** Публичные часы работы из расписания записи: медианы начал/окончаний включённых дней — устойчивы к одному короткому дню, в отличие от min/max. */
+export function scheduleSummary(schedule: ScheduleMap): ScheduleSummary | null {
+  const enabled = WEEKDAYS_ORDER.filter((day) => schedule[day]?.enabled === true);
+  if (enabled.length === 0) {
+    return null;
+  }
+  const from = medianMinutes(enabled.map((day) => timeToMinutes(schedule[day].from)));
+  const to = medianMinutes(enabled.map((day) => timeToMinutes(schedule[day].to)));
+  return { days: enabled, from: minutesToTime(from), to: minutesToTime(to) };
 }
 
 export function minutesToTime(minutes: number): string {

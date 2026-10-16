@@ -22,6 +22,15 @@ const WEEKDAYS: { key: keyof ScheduleMap; label: string; short: string }[] = [
   { key: 'sun', label: 'Воскресенье', short: 'ВС' },
 ];
 
+/** Число из input с зажимом в диапазон: пустое поле/мусор не улетает в автосейв. */
+function parseBounded(raw: string, min: number, max: number, fallback: number): number {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, Math.trunc(parsed)));
+}
+
 const STEP_OPTIONS = [30, 60, 90, 120].map((step) => ({
   value: String(step),
   label: `${step} мин`,
@@ -52,6 +61,7 @@ interface FormState {
   slotStepMinutes: number;
   horizonDays: number;
   capacity: number;
+  onlineDisabled: boolean;
   exceptions: ExceptionRow[];
 }
 
@@ -116,6 +126,7 @@ function stateFromSettings(data: BookingSettings): FormState {
     slotStepMinutes: data.slotStepMinutes,
     horizonDays: data.horizonDays,
     capacity: data.capacity,
+    onlineDisabled: data.onlineDisabled,
     exceptions: Object.entries(data.exceptions ?? {})
       .map(([date, window]) => ({
         rowId: crypto.randomUUID(),
@@ -146,6 +157,7 @@ function serializeState(state: FormState): string {
     slotStepMinutes: state.slotStepMinutes,
     horizonDays: state.horizonDays,
     capacity: state.capacity,
+    onlineDisabled: state.onlineDisabled,
     exceptions,
   });
 }
@@ -324,6 +336,7 @@ export function BookingSettingsForm() {
   const [slotStepMinutes, setSlotStepMinutes] = useState(60);
   const [horizonDays, setHorizonDays] = useState(14);
   const [capacity, setCapacity] = useState(1);
+  const [onlineDisabled, setOnlineDisabled] = useState(false);
   const [exceptions, setExceptions] = useState<ExceptionRow[]>([]);
   const didInit = useRef(false);
   const savedRef = useRef<string | null>(null);
@@ -332,8 +345,8 @@ export function BookingSettingsForm() {
     () =>
       schedule === null
         ? null
-        : serializeState({ schedule, slotStepMinutes, horizonDays, capacity, exceptions }),
-    [schedule, slotStepMinutes, horizonDays, capacity, exceptions],
+        : serializeState({ schedule, slotStepMinutes, horizonDays, capacity, onlineDisabled, exceptions }),
+    [schedule, slotStepMinutes, horizonDays, capacity, onlineDisabled, exceptions],
   );
 
   useEffect(() => {
@@ -346,6 +359,7 @@ export function BookingSettingsForm() {
     setSlotStepMinutes(state.slotStepMinutes);
     setHorizonDays(state.horizonDays);
     setCapacity(state.capacity);
+    setOnlineDisabled(state.onlineDisabled);
     setExceptions(state.exceptions);
     savedRef.current = serializeState(state);
   }, [settings.data]);
@@ -377,7 +391,10 @@ export function BookingSettingsForm() {
       return false;
     }
     for (const day of Object.values(schedule)) {
-      if (day.enabled && (!TIME_PATTERN.test(day.from) || !TIME_PATTERN.test(day.to))) {
+      if (
+        day.enabled &&
+        (!TIME_PATTERN.test(day.from) || !TIME_PATTERN.test(day.to) || day.from >= day.to)
+      ) {
         return false;
       }
     }
@@ -385,6 +402,21 @@ export function BookingSettingsForm() {
       (row) =>
         !row.enabled ||
         (TIME_PATTERN.test(row.from) && TIME_PATTERN.test(row.to) && row.from < row.to),
+    );
+  }
+
+  /** Числовые параметры валидны: пустое поле или 0 не должны улетать автосейвом. */
+  function numbersValid(): boolean {
+    return (
+      Number.isInteger(slotStepMinutes) &&
+      slotStepMinutes >= 30 &&
+      slotStepMinutes <= 120 &&
+      Number.isInteger(horizonDays) &&
+      horizonDays >= 1 &&
+      horizonDays <= 60 &&
+      Number.isInteger(capacity) &&
+      capacity >= 1 &&
+      capacity <= 10
     );
   }
 
@@ -412,6 +444,7 @@ export function BookingSettingsForm() {
       slotStepMinutes,
       horizonDays,
       capacity,
+      onlineDisabled,
       schedule,
       exceptions: exceptionsMap,
     };
@@ -423,7 +456,12 @@ export function BookingSettingsForm() {
     if (snapshot === null || snapshot === savedRef.current) {
       return;
     }
-    if (duplicateDates.size > 0 || !timesComplete()) {
+    if (duplicateDates.size > 0 || !timesComplete() || !numbersValid()) {
+      return;
+    }
+    // Не складываем параллельные PUT: пока летит прошлый, сервер ещё не знает
+    // о новых правках; после его ответа эффект перезапустится и сохранит свежее.
+    if (mutation.isPending) {
       return;
     }
     const timer = window.setTimeout(() => {
@@ -434,7 +472,8 @@ export function BookingSettingsForm() {
       });
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [snapshot, duplicateDates]);
+    // isPending в deps: по завершении мутации досканиваем несохранённые правки.
+  }, [snapshot, duplicateDates, mutation.isPending]);
 
   if (settings.isPending) {
     return (
@@ -525,6 +564,21 @@ export function BookingSettingsForm() {
         </Text>
       ) : null}
       <section className="flex flex-col gap-4 rounded-xl border border-border bg-panel p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <div className="flex min-w-0 flex-col gap-1">
+            <Text variant="label" className="font-mono uppercase tracking-[0.12em] text-content-dim">
+              Онлайн-запись на сайте
+            </Text>
+            <Text variant="caption" color="dim">
+              Закрытая запись заменяет диалог кнопки «Записаться» на «позвоните нам»
+            </Text>
+          </div>
+          <Checkbox
+            checked={!onlineDisabled}
+            onChange={(checked) => setOnlineDisabled(!checked)}
+            label="Принимаем"
+          />
+        </div>
         <Text variant="label" className="font-mono uppercase tracking-[0.12em] text-content-dim">
           Режим работы по дням недели
         </Text>
@@ -593,7 +647,7 @@ export function BookingSettingsForm() {
             min={1}
             max={60}
             value={String(horizonDays)}
-            onChange={(event) => setHorizonDays(Number(event.target.value))}
+            onChange={(event) => setHorizonDays(parseBounded(event.target.value, 1, 60, 1))}
           />
           <Input
             type="number"
@@ -601,7 +655,7 @@ export function BookingSettingsForm() {
             min={1}
             max={10}
             value={String(capacity)}
-            onChange={(event) => setCapacity(Number(event.target.value))}
+            onChange={(event) => setCapacity(parseBounded(event.target.value, 1, 10, 1))}
           />
         </div>
       </section>

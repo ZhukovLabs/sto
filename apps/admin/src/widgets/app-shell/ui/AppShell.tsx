@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, Fragment, type ReactNode } from 'react';
 import {
-  Bell,
-  CalendarClock,
+  CircleHelp,
   Inbox,
   LayoutGrid,
   LogOut,
   Menu,
-  Send,
+  Newspaper,
+  SlidersHorizontal,
   Users,
   Wrench,
 } from 'lucide-react';
@@ -24,15 +24,51 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-const NAV = [
-  { href: '/', label: 'Дашборд', crumb: 'дашборд', icon: LayoutGrid },
-  { href: '/requests', label: 'Обращения', crumb: 'обращения', icon: Inbox, badge: true },
-  { href: '/services', label: 'Услуги', crumb: 'услуги · каталог', icon: Wrench },
-  { href: '/booking-settings', label: 'Запись', crumb: 'настройки записи', icon: CalendarClock },
-  { href: '/notifications', label: 'Уведомления', crumb: 'уведомления', icon: Bell },
-  { href: '/team', label: 'Команда', crumb: 'команда', icon: Users },
-  { href: '/masters', label: 'Мастера', crumb: 'мастера · telegram', icon: Send },
-] as const;
+interface NavItem {
+  href: string;
+  label: string;
+  crumb: string;
+  icon: typeof LayoutGrid;
+  badge?: true;
+}
+
+interface NavGroup {
+  /** Подпись-разделитель; null — пункты без группы. */
+  label: string | null;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: readonly NavGroup[] = [
+  {
+    label: null,
+    items: [
+      { href: '/', label: 'Дашборд', crumb: 'дашборд', icon: LayoutGrid },
+      { href: '/requests', label: 'Обращения', crumb: 'обращения', icon: Inbox, badge: true },
+    ],
+  },
+  {
+    label: 'Сайт',
+    items: [
+      { href: '/services', label: 'Услуги', crumb: 'услуги · каталог', icon: Wrench },
+      { href: '/team', label: 'Команда', crumb: 'команда · сайт и telegram', icon: Users },
+      { href: '/faq', label: 'FAQ', crumb: 'faq · вопросы', icon: CircleHelp },
+      { href: '/news', label: 'Новости', crumb: 'новости · сайт', icon: Newspaper },
+    ],
+  },
+  {
+    label: null,
+    items: [
+      {
+        href: '/settings',
+        label: 'Настройки',
+        crumb: 'настройки · запись · уведомления · сайт',
+        icon: SlidersHorizontal,
+      },
+    ],
+  },
+];
+
+const NAV: readonly NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 
 function initials(name: string): string {
   return name
@@ -125,40 +161,50 @@ export function AppShell({ user, badge, children }: AppShellProps) {
               style={{ height: bar.height, transform: `translateY(${bar.top}px)` }}
             />
           ) : null}
-          {NAV.map((item, index) => {
-            const active = index === activeIndex;
-            const showBadge = 'badge' in item && item.badge && badge !== null && badge > 0;
-            return (
-              <Link
-                key={item.href}
-                ref={(el) => {
-                  linkRefs.current[index] = el;
-                }}
-                href={item.href}
-                title={item.label}
-                aria-current={active ? 'page' : undefined}
-                className={`group relative z-10 flex h-11 items-center gap-3 rounded-xl px-2.5 text-body-sm transition-colors duration-300 ${
-                  active
-                    ? 'text-content'
-                    : 'text-content-muted hover:bg-panel-2/60 hover:text-content'
-                }`}
-              >
-                <item.icon
-                  size={18}
-                  strokeWidth={1.8}
-                  className={`shrink-0 transition-colors duration-300 ${
-                    active ? 'text-primary' : 'group-hover:text-content'
-                  }`}
-                />
-                <span className="hidden min-w-0 truncate lg:inline">{item.label}</span>
-                {showBadge ? (
-                  <span className="ml-auto hidden size-5 shrink-0 items-center justify-center rounded-full bg-primary font-mono text-micro font-bold text-primary-ink lg:flex">
-                    {badge}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
+          {NAV_GROUPS.map((group, groupIndex) => (
+            <Fragment key={group.label ?? `group-${groupIndex}`}>
+              {group.label !== null ? (
+                <span className="mt-5 px-2.5 pb-1 font-mono text-micro uppercase tracking-[0.14em] text-content-dim">
+                  {group.label}
+                </span>
+              ) : null}
+              {group.items.map((item) => {
+                const index = NAV.indexOf(item);
+                const active = index === activeIndex;
+                const showBadge = item.badge === true && badge !== null && badge > 0;
+                return (
+                  <Link
+                    key={item.href}
+                    ref={(el) => {
+                      linkRefs.current[index] = el;
+                    }}
+                    href={item.href}
+                    title={item.label}
+                    aria-current={active ? 'page' : undefined}
+                    className={`group relative z-10 flex h-11 items-center gap-3 rounded-xl px-2.5 text-body-sm transition-colors duration-300 ${
+                      active
+                        ? 'text-content'
+                        : 'text-content-muted hover:bg-panel-2/60 hover:text-content'
+                    }`}
+                  >
+                    <item.icon
+                      size={18}
+                      strokeWidth={1.8}
+                      className={`shrink-0 transition-colors duration-300 ${
+                        active ? 'text-primary' : 'group-hover:text-content'
+                      }`}
+                    />
+                    <span className="hidden min-w-0 truncate lg:inline">{item.label}</span>
+                    {showBadge ? (
+                      <span className="ml-auto hidden size-5 shrink-0 items-center justify-center rounded-full bg-primary font-mono text-micro font-bold text-primary-ink lg:flex">
+                        {badge}
+                      </span>
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </Fragment>
+          ))}
         </nav>
 
         <button
@@ -207,35 +253,44 @@ export function AppShell({ user, badge, children }: AppShellProps) {
 
       <Modal open={navOpen} onClose={() => setNavOpen(false)} title="Разделы" size="sm">
         <nav aria-label="Разделы панели" className="flex flex-col gap-1">
-          {NAV.map((item) => {
-            const active = isActive(pathname, item.href);
-            const showBadge = 'badge' in item && item.badge && badge !== null && badge > 0;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setNavOpen(false)}
-                aria-current={active ? 'page' : undefined}
-                className={`group flex h-11 items-center gap-3 rounded-xl px-3 text-body-sm transition-colors duration-300 ${
-                  active
-                    ? 'bg-panel-2 text-content shadow-[inset_2px_0_0_0_var(--color-primary)]'
-                    : 'text-content-muted hover:bg-panel-2 hover:text-content'
-                }`}
-              >
-                <item.icon
-                  size={18}
-                  strokeWidth={1.8}
-                  className={`shrink-0 ${active ? 'text-primary' : ''}`}
-                />
-                <span className="min-w-0 truncate">{item.label}</span>
-                {showBadge ? (
-                  <span className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-full bg-primary font-mono text-micro font-bold text-primary-ink">
-                    {badge}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
+          {NAV_GROUPS.map((group, groupIndex) => (
+            <Fragment key={group.label ?? `group-${groupIndex}`}>
+              {group.label !== null ? (
+                <span className="mt-4 px-3 pb-1 font-mono text-micro uppercase tracking-[0.14em] text-content-dim">
+                  {group.label}
+                </span>
+              ) : null}
+              {group.items.map((item) => {
+                const active = isActive(pathname, item.href);
+                const showBadge = item.badge === true && badge !== null && badge > 0;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setNavOpen(false)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`group flex h-11 items-center gap-3 rounded-xl px-3 text-body-sm transition-colors duration-300 ${
+                      active
+                        ? 'bg-panel-2 text-content shadow-[inset_2px_0_0_0_var(--color-primary)]'
+                        : 'text-content-muted hover:bg-panel-2 hover:text-content'
+                    }`}
+                  >
+                    <item.icon
+                      size={18}
+                      strokeWidth={1.8}
+                      className={`shrink-0 ${active ? 'text-primary' : ''}`}
+                    />
+                    <span className="min-w-0 truncate">{item.label}</span>
+                    {showBadge ? (
+                      <span className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-full bg-primary font-mono text-micro font-bold text-primary-ink">
+                        {badge}
+                      </span>
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </Fragment>
+          ))}
         </nav>
         <div className="mt-4 border-t border-border pt-4">
           <button

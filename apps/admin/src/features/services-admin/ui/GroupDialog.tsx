@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Checkbox, Input, Modal, Select, Text } from '@sto/ui';
 import { GROUP_ICONS, GROUP_ICON_LABELS, readProxyError, type ServiceGroupRow } from '@/lib/api';
-import { PhotoField } from './PhotoField';
+import { PhotoField } from '@/shared/ui/PhotoField';
 
 export interface GroupDialogProps {
   open: boolean;

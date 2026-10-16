@@ -44,6 +44,8 @@ export type {
 } from './components/Avatar/Avatar';
 export { Divider } from './components/Divider/Divider';
 export type { DividerProps } from './components/Divider/Divider';
+export { Reveal } from './components/Reveal/Reveal';
+export type { RevealProps, RevealVariant } from './components/Reveal/Reveal';
 export { Container } from './components/Container/Container';
 export type { ContainerProps, ContainerSize } from './components/Container/Container';
 export { Input } from './components/Input/Input';
@@ -52,6 +54,8 @@ export { Textarea } from './components/Textarea/Textarea';
 export type { TextareaProps } from './components/Textarea/Textarea';
 export { Select } from './components/Select/Select';
 export type { SelectProps, SelectOption } from './components/Select/Select';
+export { RichTextEditor } from './components/RichTextEditor/RichTextEditor';
+export type { RichTextEditorProps } from './components/RichTextEditor/RichTextEditor';
 export { Checkbox } from './components/Checkbox/Checkbox';
 export type { CheckboxProps } from './components/Checkbox/Checkbox';
 export { Spinner } from './components/Spinner/Spinner';

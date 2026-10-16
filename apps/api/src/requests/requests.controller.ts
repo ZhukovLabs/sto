@@ -56,6 +56,14 @@ class UpdateRequestStatusBody {
 class ListRequestsQuery {
   @ApiProperty({ enum: [...REQUEST_STATUSES], required: false })
   status?: RequestStatus;
+
+  @ApiProperty({
+    minimum: 1,
+    maximum: 500,
+    required: false,
+    description: 'Окно выдачи, по умолчанию 200',
+  })
+  limit?: number;
 }
 
 class RequestResponse {
@@ -152,7 +160,7 @@ export class RequestsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Список заявок (по убыванию даты)' })
   async list(@Query() query: ListRequestsQuery): Promise<RequestResponse[]> {
-    return this.requestsService.list(query.status);
+    return this.requestsService.list(query.status, query.limit);
   }
 
   @Get('count-new')

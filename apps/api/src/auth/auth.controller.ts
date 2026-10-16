@@ -59,4 +59,17 @@ export class AuthController {
     }
     return this.authService.refresh(userId);
   }
+
+  @Post('logout')
+  @HttpCode(200)
+  @UseGuards(BearerTokenGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Отозвать текущую сессию (logout)' })
+  @ApiResponse({ status: 200 })
+  async logout(@Req() request: SessionRequest): Promise<{ ok: true }> {
+    if (request.session !== undefined) {
+      this.authService.revokeSession(request.session);
+    }
+    return { ok: true };
+  }
 }

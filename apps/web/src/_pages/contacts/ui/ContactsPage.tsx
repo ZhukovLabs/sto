@@ -1,13 +1,15 @@
 import Image from 'next/image';
 import { site } from '@/shared/config/site';
+import { getSiteInfo, mapsRouteHref } from '@/entities/site';
 import { Breadcrumbs, Container, Heading, Text } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
+import { YandexMap } from '@/widgets/contacts';
 
-const telegramHref = `https://t.me/${site.telegram.replace('@', '')}`;
-const viberHref = `viber://chat?number=%2B${site.viber.replace('+', '')}`;
-
-export function ContactsPage() {
-  const [mts, a1] = site.phones;
+export async function ContactsPage() {
+  const { phone, hours, address, coords, telegram, viber } = await getSiteInfo();
+  const telegramHref = `https://t.me/${telegram.replace('@', '')}`;
+  const viberHref = `viber://chat?number=${encodeURIComponent(viber.value)}`;
+  const map = coords ?? { lat: site.map.lat, lon: site.map.lon };
 
   return (
     <>
@@ -19,7 +21,7 @@ export function ContactsPage() {
               Контакты
             </Heading>
             <Text variant="body-lg" color="muted" className="font-mono">
-              {site.city} · {site.hours.short}
+              {site.city} · {hours.short}
             </Text>
           </div>
         </Container>
@@ -43,44 +45,55 @@ export function ContactsPage() {
               записывайтесь — подберём время
             </span>
             <div className="flex flex-col gap-5">
-              {[mts, a1].map((phone) => (
-                <a key={phone.value} href={`tel:${phone.value}`} className="flex flex-col gap-1.5">
-                  <Heading
-                    variant="display-xs"
-                    font="display"
-                    className="whitespace-nowrap leading-none text-primary-ink"
-                  >
-                    {phone.pretty}
-                  </Heading>
-                  <span className="font-mono text-caption uppercase tracking-[0.12em] text-primary-ink">
-                    {phone.label}
-                  </span>
-                </a>
-              ))}
+              <a href={`tel:${phone.value}`} className="flex flex-col gap-1.5">
+                <Heading
+                  variant="display-xs"
+                  font="display"
+                  className="whitespace-nowrap leading-none text-primary-ink"
+                >
+                  {phone.pretty}
+                </Heading>
+                <span className="font-mono text-caption uppercase tracking-[0.12em] text-primary-ink">
+                  телефон · {site.city}
+                </span>
+              </a>
             </div>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2 border-t border-primary-ink pt-4">
                 <a href={telegramHref} className="font-semibold text-primary-ink hover:underline">
-                  Telegram — {site.telegram}
+                  Telegram — {telegram}
                 </a>
                 <a href={viberHref} className="font-semibold text-primary-ink hover:underline">
-                  Viber — {mts.pretty}
+                  Viber — {viber.pretty}
                 </a>
               </div>
               <span className="font-mono text-caption leading-relaxed tracking-[0.08em] text-primary-ink">
-                {site.hours.label.toUpperCase()} · {site.hours.note.toUpperCase()}
+                {hours.label.toUpperCase()} · {hours.note.toUpperCase()}
                 <br />
-                {site.address.toUpperCase()}
+                {address.isSet ? (
+                  <a
+                    href={mapsRouteHref(address.value, coords)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Маршрут до ${address.value}`}
+                    title="Построить маршрут"
+                    className="underline decoration-primary-ink/40 underline-offset-4 transition-colors hover:decoration-primary-ink"
+                  >
+                    {address.value.toUpperCase()}
+                  </a>
+                ) : (
+                  address.value.toUpperCase()
+                )}
               </span>
             </div>
           </address>
 
           <div className="relative aspect-[21/7] overflow-hidden rounded-lg border border-border bg-panel lg:col-span-2 lg:row-start-2">
-            <iframe
-              src={`https://yandex.ru/map-widget/v1/?ll=${site.map.lon}%2C${site.map.lat}&z=${site.map.zoom}&pt=${site.map.lon},${site.map.lat},pm2orgm`}
-              title={`Карта Гомеля — автосервис «ПроМакс»`}
-              allowFullScreen
-              className="absolute inset-0 h-full w-full"
+            <YandexMap
+              lat={map.lat}
+              lon={map.lon}
+              zoom={site.map.zoom}
+              title={`${site.name} — ${site.city}`}
             />
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE, ApiError, apiDeleteService, apiUpdateService } from '@/lib/api';
+import { readServiceInput } from '../validation';
 
 export async function PATCH(
   request: NextRequest,
@@ -19,11 +20,15 @@ export async function PATCH(
   if (typeof body !== 'object' || body === null) {
     return NextResponse.json({ message: 'Некорректный запрос' }, { status: 400 });
   }
+  const parsed = readServiceInput(body as Record<string, unknown>, true);
+  if (!parsed.ok) {
+    return NextResponse.json({ message: parsed.message }, { status: 400 });
+  }
   try {
     const service = await apiUpdateService(
       token,
       id,
-      body as Parameters<typeof apiUpdateService>[2],
+      parsed.input as Parameters<typeof apiUpdateService>[2],
     );
     return NextResponse.json(service);
   } catch (error) {

@@ -15,6 +15,7 @@ export {
   Modal,
   Pill,
   PriceTag,
+  Reveal,
   SectionTitle,
   SegmentedControl,
   Select,

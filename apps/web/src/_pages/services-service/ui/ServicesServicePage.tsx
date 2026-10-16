@@ -1,9 +1,10 @@
-import { Phone } from 'lucide-react';
+import { ArrowRight, Phone } from 'lucide-react';
 import { Breadcrumbs, Container, Heading, Text } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
-import { UNIT_SHORT, formatPriceFrom, servicePhoto } from '@/entities/service';
+import { ServiceCard, UNIT_SHORT, formatPriceFrom, servicePhoto } from '@/entities/service';
 import type { CatalogGroup } from '@/entities/service';
 import type { Service } from '@/entities/service';
+import { getSiteInfo } from '@/entities/site';
 import { site } from '@/shared/config/site';
 
 interface ServicesServicePageProps {
@@ -11,8 +12,8 @@ interface ServicesServicePageProps {
   service: Service;
 }
 
-export function ServicesServicePage({ group, service }: ServicesServicePageProps) {
-  const phone = site.phones[0];
+export async function ServicesServicePage({ group, service }: ServicesServicePageProps) {
+  const { phone } = await getSiteInfo();
   const others = group.services
     .filter((item) => item.isActive && item.id !== service.id)
     .slice(0, 4);
@@ -86,27 +87,31 @@ export function ServicesServicePage({ group, service }: ServicesServicePageProps
       <Container size="site" className="pb-20 pt-10">
         {others.length > 0 && (
           <section aria-labelledby="related-services">
-            <Heading id="related-services" variant="h4" as="h2">
-              Другие услуги направления
-            </Heading>
-            <ul className="mt-5 grid gap-x-6 gap-y-0 sm:grid-cols-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-border pb-3">
+              <Heading id="related-services" variant="h4" as="h2" className="uppercase">
+                Другие услуги направления
+              </Heading>
+              <a
+                href={`/services/${group.id}`}
+                className="group flex items-center gap-2 font-mono text-caption uppercase tracking-[0.1em] text-content-dim transition-colors hover:text-primary"
+              >
+                все услуги
+                <ArrowRight
+                  size={14}
+                  aria-hidden="true"
+                  className="transition-transform group-hover:translate-x-0.5"
+                />
+              </a>
+            </div>
+            <ul className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {others.map((item) => (
-                <li
-                  key={item.id}
-                  className="border-b border-border last:border-b-0 sm:last-even:border-b-0"
-                >
-                  <a
+                <li key={item.id}>
+                  <ServiceCard
+                    service={item}
+                    group={group}
                     href={`/services/${group.id}/${item.id}`}
-                    className="group flex items-center justify-between gap-4 py-4 transition-colors hover:opacity-80"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-body-lg font-medium text-content">
-                      {item.title}
-                    </span>
-                    <span className="shrink-0 whitespace-nowrap font-mono text-body text-content-muted">
-                      от {item.priceFrom}
-                      {' руб.'}
-                    </span>
-                  </a>
+                    className="h-full"
+                  />
                 </li>
               ))}
             </ul>

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { getNewsList } from '@/entities/news';
 import { getServiceCatalog } from '@/entities/service';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://promaks.by';
@@ -7,6 +8,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
     { url: `${BASE_URL}/`, changeFrequency: 'weekly', priority: 1 },
     { url: `${BASE_URL}/services`, changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${BASE_URL}/news`, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${BASE_URL}/team`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/faq`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE_URL}/contacts`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/privacy`, changeFrequency: 'yearly', priority: 0.1 },
   ];
@@ -27,5 +31,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })),
   );
 
-  return [...staticEntries, ...groupEntries, ...serviceEntries];
+  const news = await getNewsList();
+  const newsEntries: MetadataRoute.Sitemap = (news ?? []).map((card) => ({
+    url: `${BASE_URL}/news/${card.slug}`,
+    lastModified: new Date(card.updatedAt),
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  }));
+
+  return [...staticEntries, ...groupEntries, ...serviceEntries, ...newsEntries];
 }

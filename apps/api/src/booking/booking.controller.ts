@@ -66,6 +66,14 @@ class UpdateBookingStatusBody {
 class ListBookingsQuery {
   @ApiProperty({ enum: [...BOOKING_STATUSES], required: false })
   status?: BookingStatus;
+
+  @ApiProperty({
+    minimum: 1,
+    maximum: 500,
+    required: false,
+    description: 'Окно выдачи, по умолчанию 200',
+  })
+  limit?: number;
 }
 
 class CreateBookingResponse {
@@ -230,7 +238,7 @@ export class BookingController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Список записей (по убыванию даты создания)' })
   async list(@Query() query: ListBookingsQuery): Promise<BookingResponse[]> {
-    return this.bookingService.list(query.status);
+    return this.bookingService.list(query.status, query.limit);
   }
 
   @Get('bookings/day-overview')

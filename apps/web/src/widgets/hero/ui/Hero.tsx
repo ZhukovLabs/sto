@@ -1,9 +1,13 @@
 import Image from 'next/image';
+import { MapPin } from 'lucide-react';
 import { Button, Container, Heading, Text } from '@/shared/ui';
 import { CallbackButton } from '@/features/callback-request';
+import { getSiteInfo, mapsRouteHref } from '@/entities/site';
 import { LogoDisc } from '@/shared/brand/LogoDisc';
 
-export function Hero() {
+export async function Hero() {
+  const { address, coords } = await getSiteInfo();
+  const addressHref = address.isSet ? mapsRouteHref(address.value, coords) : '/contacts';
   return (
     <section id="hero" className="relative border-b border-border">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+360px)] overflow-hidden bg-[radial-gradient(90%_100%_at_70%_12%,var(--color-bg-raised)_0%,color-mix(in_oklab,var(--color-bg-raised)_35%,var(--color-bg))_30%,color-mix(in_oklab,var(--color-bg-raised)_10%,var(--color-bg))_55%,var(--color-bg)_85%)]">
@@ -31,9 +35,9 @@ export function Hero() {
               className="max-w-[552px] text-balance animate-rise [animation-delay:260ms] motion-reduce:animate-none"
             >
               <span className="text-primary">Автосервис в Гомеле</span>: замена масла,{' '}
-              <span className="text-primary">ремонт двигателя, тормозов и подвески</span>. Смету
-              считаем, прежде чем тронуть машину. Нашли то, чего нет в смете? Сначала спросим вас.
-              Молчаливых доплат не будет.
+              <span className="text-primary">ремонт двигателя, тормозов и подвески</span>. Сначала{' '}
+              <span className="text-primary">письменная смета</span> — потом ремонт. Нашли сверх
+              сметы? Позвоним и спросим. Молчаливых доплат не будет.
             </Text>
 
             <div className="flex animate-rise flex-col items-stretch gap-3 [animation-delay:380ms] sm:flex-row sm:flex-wrap sm:items-center sm:gap-3.5 motion-reduce:animate-none">
@@ -44,6 +48,23 @@ export function Hero() {
                 Услуги и цены
               </Button>
             </div>
+
+            {/* Внешняя ссылка на карты (или /contacts, пока адрес не задан) — обычный <a>, не next/link. */}
+            <a
+              href={addressHref}
+              {...(address.isSet
+                ? {
+                    target: '_blank',
+                    rel: 'noopener noreferrer',
+                    title: 'Построить маршрут',
+                    'aria-label': `Маршрут до ${address.value}`,
+                  }
+                : {})}
+              className="flex w-fit animate-rise items-center gap-2 font-mono text-caption uppercase tracking-[0.08em] text-content-dim transition-colors [animation-delay:460ms] hover:text-primary motion-reduce:animate-none"
+            >
+              <MapPin className="size-4 shrink-0" aria-hidden="true" strokeWidth={1.8} />
+              {address.value}
+            </a>
           </div>
 
           <div className="relative -left-4 w-[calc(100%+2rem)] aspect-[4/3] animate-photo-in overflow-hidden rounded-none border border-border [animation-delay:150ms] max-sm:border-x-0 sm:left-0 sm:w-auto sm:aspect-[552/539] sm:rounded-2xl motion-reduce:animate-none">

@@ -94,6 +94,17 @@ export async function apiRefresh(token: string): Promise<{ token: string } | nul
   return (await response.json()) as { token: string };
 }
 
+/** Отзывает сессию на бэкенде (logout). Cookie чистится вызывающим независимо от исхода. */
+export async function apiLogout(token: string): Promise<void> {
+  const response = await fetch(`${API_URL}/auth/logout`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 401) {
+    throw await parseError(response);
+  }
+}
+
 export const REQUEST_STATUSES = ['new', 'called', 'taken', 'cancelled'] as const;
 
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
@@ -118,8 +129,9 @@ export interface RequestRow {
   createdAt: string;
 }
 
-export async function apiListRequests(token: string): Promise<RequestRow[]> {
-  const response = await fetch(`${API_URL}/requests`, {
+export async function apiListRequests(token: string, limit?: number): Promise<RequestRow[]> {
+  const query = limit !== undefined ? `?limit=${encodeURIComponent(limit)}` : '';
+  const response = await fetch(`${API_URL}/requests${query}`, {
     headers: { authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
@@ -254,8 +266,9 @@ export interface BookingRow {
   createdAt: string;
 }
 
-export async function apiListBookings(token: string): Promise<BookingRow[]> {
-  const response = await fetch(`${API_URL}/bookings`, {
+export async function apiListBookings(token: string, limit?: number): Promise<BookingRow[]> {
+  const query = limit !== undefined ? `?limit=${encodeURIComponent(limit)}` : '';
+  const response = await fetch(`${API_URL}/bookings${query}`, {
     headers: { authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
@@ -325,6 +338,8 @@ export interface BookingSettings {
   slotStepMinutes: number;
   horizonDays: number;
   capacity: number;
+  /// true — онлайн-запись на сайте закрыта.
+  onlineDisabled: boolean;
   schedule: ScheduleMap;
   exceptions: ExceptionsMap;
 }
@@ -794,4 +809,246 @@ export async function apiReorderTeam(token: string, ids: string[]): Promise<void
   if (!response.ok) {
     throw await parseError(response);
   }
+}
+
+export interface SiteSettingsRow {
+  /** E.164 (+375…) либо null — не задан, web показывает фолбэк. */
+  phone: string | null;
+  /** Адрес либо null — не задан, web показывает фолбэк. */
+  address: string | null;
+  /** УНП (9 цифр) либо null — не задан, web показывает фолбэк. */
+  unp: string | null;
+  /** Telegram вида @username либо null — не задан, web показывает фолбэк. */
+  telegram: string | null;
+  /** Viber в E.164 либо null — не задан, web показывает фолбэк. */
+  viber: string | null;
+  /** Координаты задаются парой; null — не заданы. */
+  lat: number | null;
+  lon: number | null;
+  /** Часы работы из расписания записи (медианы начала/окончания); null — все дни выключены. */
+  hours: { days: string[]; from: string; to: string } | null;
+}
+
+export async function apiGetSiteSettings(token: string): Promise<SiteSettingsRow> {
+  const response = await fetch(`${API_URL}/site-settings`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as SiteSettingsRow;
+}
+
+export async function apiUpdateSiteSettings(
+  token: string,
+  patch: {
+    phone?: string;
+    address?: string;
+    unp?: string;
+    telegram?: string;
+    viber?: string;
+    lat?: number | string;
+    lon?: number | string;
+  },
+): Promise<void> {
+  const response = await fetch(`${API_URL}/site-settings`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+}
+
+export interface FaqItemRow {
+  id: string;
+  question: string;
+  answer: string;
+  position: number;
+  isActive: boolean;
+}
+
+export interface FaqItemInput {
+  question: string;
+  answer: string;
+}
+
+export async function apiListFaq(token: string): Promise<FaqItemRow[]> {
+  const response = await fetch(`${API_URL}/faq/all`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as FaqItemRow[];
+}
+
+export async function apiCreateFaqItem(token: string, input: FaqItemInput): Promise<FaqItemRow> {
+  const response = await fetch(`${API_URL}/faq`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as FaqItemRow;
+}
+
+export async function apiUpdateFaqItem(
+  token: string,
+  id: string,
+  patch: Partial<FaqItemInput> & { isActive?: boolean },
+): Promise<FaqItemRow> {
+  const response = await fetch(`${API_URL}/faq/${id}`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as FaqItemRow;
+}
+
+export async function apiDeleteFaqItem(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/faq/${id}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) {
+    throw await parseError(response);
+  }
+}
+
+export async function apiReorderFaq(token: string, ids: string[]): Promise<void> {
+  const response = await fetch(`${API_URL}/faq/order`, {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+}
+
+export interface NewsRow {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content: string;
+  cover: string | null;
+  /** Ссылка на первоисточник (автоновости из RSS) либо null. */
+  sourceUrl: string | null;
+  isPublished: boolean;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewsInput {
+  title: string;
+  excerpt?: string | null;
+  content: string;
+  cover?: string | null;
+  isPublished?: boolean;
+  slug?: string;
+}
+
+export async function apiListNews(token: string): Promise<NewsRow[]> {
+  const response = await fetch(`${API_URL}/news/all`, {
+    headers: { authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as NewsRow[];
+}
+
+export async function apiCreateNews(token: string, input: NewsInput): Promise<NewsRow> {
+  const response = await fetch(`${API_URL}/news`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as NewsRow;
+}
+
+export async function apiUpdateNews(
+  token: string,
+  id: string,
+  patch: Partial<NewsInput>,
+): Promise<NewsRow> {
+  const response = await fetch(`${API_URL}/news/${id}`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as NewsRow;
+}
+
+export async function apiDeleteNews(token: string, id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/news/${id}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) {
+    throw await parseError(response);
+  }
+}
+
+export interface AutoNewsResult {
+  slug: string;
+  title: string;
+  pickedFrom: string;
+  focus: string;
+  reason: string;
+  candidates: number;
+}
+
+export interface AutoNewsLastRun {
+  ok: boolean;
+  finishedAt: string;
+  result?: AutoNewsResult;
+  message?: string;
+}
+
+export interface AutoNewsState {
+  running: boolean;
+  startedAt: string | null;
+  last: AutoNewsLastRun | null;
+}
+
+/** Собрать автоновость из RSS через ИИ и опубликовать. */
+export async function apiAutoNews(token: string): Promise<AutoNewsResult> {
+  const response = await fetch(`${API_URL}/news/auto`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as AutoNewsResult;
+}
+
+/** Состояние автогенерации: идёт ли сейчас и чем закончился прошлый прогон. */
+export async function apiAutoNewsStatus(token: string): Promise<AutoNewsState> {
+  const response = await fetch(`${API_URL}/news/auto/status`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+  return (await response.json()) as AutoNewsState;
 }

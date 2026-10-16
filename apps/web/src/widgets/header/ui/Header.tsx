@@ -6,22 +6,45 @@ import { usePathname } from 'next/navigation';
 import { CalendarCheck, Menu, Phone, X } from 'lucide-react';
 import { Button, Container, Modal } from '@/shared/ui';
 import { CallbackButton, CallbackRequestDialog } from '@/features/callback-request';
+import { useSiteInfo } from '@/entities/site';
 import { site } from '@/shared/config/site';
 import { LogoMark } from '@/shared/brand/LogoMark';
 
+/** У каждого пункта своя страница: подсветка только по pathname. */
 const NAV_ITEMS = [
-  { href: '/services', label: 'Услуги и цены', match: (p: string) => p.startsWith('/services') },
-  { href: '/#how', label: 'Как работаем', match: () => false },
-  { href: '/#trust', label: 'Гарантия', match: () => false },
-  { href: '/contacts', label: 'Контакты', match: (p: string) => p === '/contacts' },
+  {
+    href: '/services',
+    label: 'Услуги и цены',
+    match: (p: string) => p.startsWith('/services'),
+  },
+  {
+    href: '/team',
+    label: 'Команда',
+    match: (p: string) => p.startsWith('/team'),
+  },
+  {
+    href: '/news',
+    label: 'Новости',
+    match: (p: string) => p.startsWith('/news'),
+  },
+  {
+    href: '/contacts',
+    label: 'Контакты',
+    match: (p: string) => p === '/contacts',
+  },
 ] as const;
 
+type NavItem = (typeof NAV_ITEMS)[number];
+
 export function Header() {
-  const phone = site.phones[0];
+  const { phone, hours } = useSiteInfo();
   const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+
+  const isActive = (item: NavItem): boolean => item.match(pathname);
+
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 2);
@@ -62,13 +85,13 @@ export function Header() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    aria-current={item.match(pathname) ? 'page' : undefined}
+                    aria-current={isActive(item) ? 'page' : undefined}
                     className={`relative py-1 text-center text-body font-medium transition-colors hover:text-content ${
-                      item.match(pathname) ? 'text-content' : 'text-content-muted'
+                      isActive(item) ? 'text-content' : 'text-content-muted'
                     }`}
                   >
                     {item.label}
-                    {item.match(pathname) ? (
+                    {isActive(item) ? (
                       <span
                         aria-hidden="true"
                         className="absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-primary"
@@ -86,7 +109,7 @@ export function Header() {
                 {phone.pretty}
               </span>
               <span className="font-mono text-caption uppercase tracking-[0.08em] text-content-dim">
-                {site.hours.label}
+                {hours.label}
               </span>
             </a>
             <a
@@ -125,10 +148,10 @@ export function Header() {
               <li key={item.href} className="border-b border-border last:border-b-0">
                 <Link
                   href={item.href}
-                  aria-current={item.match(pathname) ? 'page' : undefined}
+                  aria-current={isActive(item) ? 'page' : undefined}
                   onClick={() => setMenuOpen(false)}
                   className={`flex items-center justify-between py-4 text-body-lg transition-colors ${
-                    item.match(pathname) ? 'text-content' : 'text-content-muted hover:text-content'
+                    isActive(item) ? 'text-content' : 'text-content-muted hover:text-content'
                   }`}
                 >
                   {item.label}
@@ -140,7 +163,7 @@ export function Header() {
         <a href={`tel:${phone.value}`} className="mt-6 flex flex-col gap-1 rounded-lg bg-panel p-4">
           <span className="font-mono text-body-lg font-semibold text-content">{phone.pretty}</span>
           <span className="font-mono text-caption text-content-dim">
-            {site.hours.label} · {site.hours.note}
+            {hours.label} · {hours.note}
           </span>
         </a>
         <div className="mt-4">

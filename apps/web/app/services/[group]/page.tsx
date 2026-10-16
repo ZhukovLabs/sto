@@ -32,8 +32,8 @@ export async function generateMetadata({ params }: GroupPageProps): Promise<Meta
         : `${group.title} в Гомеле | СТО «ПроМакс»`,
     description:
       priceFrom !== null
-        ? `${base}: ${activeServices.map((service) => service.title).join(', ')}. Цена от ${priceFrom} Б, запись онлайн, гарантия 6 месяцев.`
-        : `${base}. Запись онлайн, гарантия 6 месяцев.`,
+        ? `${base}: ${activeServices.map((service) => service.title).join(', ')}. Цена от ${priceFrom} Б, запись онлайн, гарантия 3 месяца или 5 000 км.`
+        : `${base}. Запись онлайн, гарантия 3 месяца или 5 000 км.`,
   };
 }
 
